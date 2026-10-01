@@ -1,0 +1,8 @@
+{
+  "name": "Soul of Russia and India",
+  "description": "Interactive cultural bridge, digital heritage museum, language learning platform, and youth opportunities portal connecting Russia and India.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
