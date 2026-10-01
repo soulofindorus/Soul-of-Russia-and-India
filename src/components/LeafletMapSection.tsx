@@ -315,28 +315,28 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
   return (
     <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-8">
       {/* Header with Artistic Accent */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200/90 pb-6">
         <div className="space-y-3 max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-bold text-amber-300 uppercase tracking-wider">
-            <Compass className="h-3.5 w-3.5" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-white/90 px-3.5 py-1 text-xs font-bold text-amber-800 uppercase tracking-wider shadow-sm">
+            <Compass className="h-3.5 w-3.5 text-amber-600" />
             <span>Interactive Cartography • Интерактивная Карта • इंटरेक्टिव मानचित्र</span>
           </div>
-          <h2 className="font-cinzel text-2xl sm:text-4xl font-extrabold text-white tracking-wide">
+          <h2 className="font-cinzel text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-wide">
             Eurasian Civilizational Landscape
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300 font-serif-culture leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 font-serif-culture leading-relaxed">
             Directly navigate and explore the historical cradles, archaeological sanctuaries, and living traditions of both nations. Click any pin on the map to open the full regional dossier.
           </p>
         </div>
 
         {/* View Focus Switcher */}
-        <div className="flex flex-wrap items-center justify-center gap-1.5 bg-slate-900/90 p-1.5 rounded-2xl border border-amber-500/30 backdrop-blur-md shadow-lg w-full sm:w-auto">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 bg-white/95 p-1.5 rounded-2xl border border-slate-200/90 shadow-md w-full sm:w-auto">
           <button
             onClick={() => handleFocusChange('both')}
             className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-none ${
               activeFocus === 'both'
                 ? 'bg-amber-500 text-slate-950 shadow-[0_0_15px_rgba(212,175,55,0.4)]'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
             }`}
           >
             <Layers className="h-3.5 w-3.5" />
@@ -347,7 +347,7 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
             className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-none ${
               activeFocus === 'Russia'
                 ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
             }`}
           >
             <span>🇷🇺</span>
@@ -358,7 +358,7 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
             className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-none ${
               activeFocus === 'India'
                 ? 'bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.5)]'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
             }`}
           >
             <span>🇮🇳</span>

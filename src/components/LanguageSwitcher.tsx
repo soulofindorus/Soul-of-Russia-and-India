@@ -162,12 +162,12 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         aria-expanded={dropdownOpen}
         aria-haspopup="true"
         title="Change Language"
-        className="flex sm:hidden items-center gap-1.5 rounded-full border border-amber-500/40 bg-[#090e18]/95 px-2.5 py-1 text-xs font-semibold text-white shadow-sm focus:outline-none shrink-0"
+        className="flex sm:hidden items-center gap-1.5 rounded-full border border-amber-500/40 bg-white/95 px-2.5 py-1 text-xs font-semibold text-slate-800 shadow-sm focus:outline-none shrink-0"
       >
         <span className="text-xs">{currentOption.flag}</span>
-        <span className="font-serif-culture font-bold text-amber-200">{currentOption.shortLabel}</span>
+        <span className="font-serif-culture font-bold text-amber-800">{currentOption.shortLabel}</span>
         <ChevronDown
-          className={`h-3 w-3 text-amber-400 transition-transform duration-200 ${
+          className={`h-3 w-3 text-amber-600 transition-transform duration-200 ${
             dropdownOpen ? 'rotate-180' : ''
           }`}
         />
@@ -175,7 +175,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
 
       {/* Segmented Pill Bar for Tablet/Desktop */}
       <div
-        className="hidden sm:flex items-center rounded-full border border-amber-500/30 bg-[#090e18]/90 p-1 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] backdrop-blur-md"
+        className="hidden sm:flex items-center rounded-full border border-amber-500/30 bg-white/95 p-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] backdrop-blur-md"
         role="radiogroup"
         aria-label="Interface language"
       >
@@ -193,7 +193,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
               className={`relative flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-all duration-200 select-none ${
                 isSelected
                   ? lang.themeGradient
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <span className="text-xs" aria-hidden="true">
@@ -213,13 +213,13 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
           aria-expanded={dropdownOpen}
           aria-haspopup="true"
           title="Language options & persistent preferences"
-          className={`ml-0.5 flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:text-amber-300 hover:bg-slate-800/80 transition-colors focus:outline-none ${
-            dropdownOpen ? 'text-amber-400 bg-slate-800' : ''
+          className={`ml-0.5 flex h-6 w-6 items-center justify-center rounded-full text-slate-500 hover:text-amber-700 hover:bg-slate-100 transition-colors focus:outline-none ${
+            dropdownOpen ? 'text-amber-700 bg-amber-50' : ''
           }`}
         >
           <ChevronDown
             className={`h-3.5 w-3.5 transition-transform duration-200 ${
-              dropdownOpen ? 'rotate-180 text-amber-400' : ''
+              dropdownOpen ? 'rotate-180 text-amber-600' : ''
             }`}
           />
         </button>
@@ -233,15 +233,15 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.96 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 w-72 origin-top-right rounded-2xl border border-amber-500/30 bg-[#0a101d] p-3 shadow-[0_10px_35px_rgba(0,0,0,0.8)] backdrop-blur-xl z-50"
+            className="absolute right-0 top-full mt-2 w-72 origin-top-right rounded-2xl border border-amber-500/30 bg-white/95 p-3 shadow-[0_10px_35px_rgba(15,23,42,0.15)] backdrop-blur-xl z-50 text-slate-800"
           >
             {/* Header info */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 px-1.5 mb-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
-                <Globe className="h-4 w-4 text-amber-400" />
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 px-1.5 mb-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800">
+                <Globe className="h-4 w-4 text-amber-600" />
                 <span>Language & Script</span>
               </div>
-              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300 border border-amber-500/30">
+              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 border border-amber-300">
                 Persistent
               </span>
             </div>
@@ -258,25 +258,25 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
                     type="button"
                     className={`group flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-all ${
                       isSelected
-                        ? 'bg-amber-500/15 border border-amber-400/50 text-white'
-                        : 'hover:bg-slate-850 text-slate-300 hover:text-white border border-transparent'
+                        ? 'bg-amber-500/15 border border-amber-500/40 text-slate-900'
+                        : 'hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-transparent'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-xl shrink-0">{lang.flag}</span>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-serif-culture text-sm font-bold text-white group-hover:text-amber-200">
+                          <span className="font-serif-culture text-sm font-bold text-slate-900 group-hover:text-amber-800">
                             {lang.nativeLabel}
                           </span>
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-[10px] text-slate-500">
                             ({lang.englishLabel})
                           </span>
                         </div>
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                        <div className="text-[10px] text-slate-500 flex items-center gap-1.5">
                           <span>{lang.script}</span>
                           <span>•</span>
-                          <span className="text-amber-400/80">{lang.region}</span>
+                          <span className="text-amber-700">{lang.region}</span>
                         </div>
                       </div>
                     </div>

@@ -46,36 +46,36 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
     <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 sm:space-y-16 w-full flex flex-col items-center">
       {/* Header */}
       <div className="text-center space-y-4 max-w-3xl mx-auto w-full">
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1 text-xs font-bold tracking-wider text-amber-300 uppercase">
-          <Users className="h-3.5 w-3.5" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-white/90 px-4 py-1 text-xs font-bold tracking-wider text-amber-800 uppercase shadow-sm">
+          <Users className="h-3.5 w-3.5 text-amber-600" />
           <span>Cultural Diplomacy • Youth Engagement</span>
         </div>
-        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide break-words">
+        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-wide break-words">
           {t.about.title}
         </h1>
-        <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-serif-culture">
+        <p className="text-xs sm:text-base text-slate-600 leading-relaxed font-serif-culture">
           {t.about.leadText}
         </p>
       </div>
 
       {/* Vision & Purpose Manifest Card */}
-      <div className="relative overflow-hidden rounded-3xl border border-amber-500/25 bg-gradient-to-b from-[#0e172a] to-[#070c18] p-5 sm:p-12 shadow-2xl space-y-8 w-full">
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white/90 p-5 sm:p-12 shadow-xl space-y-8 w-full">
         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-amber-400 font-cinzel text-lg font-bold">
-              <Compass className="h-5 w-5" />
+            <div className="flex items-center gap-2 text-amber-800 font-cinzel text-lg font-bold">
+              <Compass className="h-5 w-5 text-amber-600" />
               <span>Vision & Purpose</span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-serif-culture">
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-serif-culture">
               {t.about.bodyText}
             </p>
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-amber-400 font-cinzel text-lg font-bold">
-              <BookOpen className="h-5 w-5" />
+            <div className="flex items-center gap-2 text-amber-800 font-cinzel text-lg font-bold">
+              <BookOpen className="h-5 w-5 text-amber-600" />
               <span>Language & Archaeology</span>
             </div>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-serif-culture">

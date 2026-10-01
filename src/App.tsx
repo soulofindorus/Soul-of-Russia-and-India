@@ -20,6 +20,7 @@ import { RegionModal } from './components/RegionModal';
 import { VideoPlayerModal } from './components/VideoPlayerModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { AmbientCulturalBackground } from './components/AmbientCulturalBackground';
 import { fetchOpportunitiesFromSupabase, insertOpportunityToSupabase } from './lib/supabase';
 
 export default function App() {
@@ -119,7 +120,10 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#070b13] text-slate-100 selection:bg-amber-500 selection:text-slate-950 font-sans flex flex-col items-center">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#eef4f9] text-slate-800 selection:bg-amber-500 selection:text-white font-sans flex flex-col items-center">
+      {/* Living Ambient Cultural Atmosphere (Russia ⇄ India) */}
+      <AmbientCulturalBackground />
+
       {/* Top Sticky Navigation */}
       <Navbar
         currentLang={currentLang}

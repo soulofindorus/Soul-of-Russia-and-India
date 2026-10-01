@@ -54,14 +54,14 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
     <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 sm:space-y-16 w-full flex flex-col items-center">
       {/* Top Header */}
       <div className="text-center space-y-4 max-w-3xl mx-auto w-full">
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1 text-xs font-bold tracking-wider text-amber-300 uppercase">
-          <Landmark className="h-3.5 w-3.5" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-white/90 px-4 py-1 text-xs font-bold tracking-wider text-amber-800 uppercase shadow-sm">
+          <Landmark className="h-3.5 w-3.5 text-amber-600" />
           <span>Archaeology • Architecture • Sacred Traditions</span>
         </div>
-        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide break-words">
+        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-wide break-words">
           {t.heritage.title}
         </h1>
-        <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-serif-culture">
+        <p className="text-xs sm:text-base text-slate-600 leading-relaxed font-serif-culture">
           {t.heritage.subtitle}
         </p>
       </div>

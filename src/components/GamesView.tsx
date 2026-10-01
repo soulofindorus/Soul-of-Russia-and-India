@@ -144,33 +144,33 @@ export const GamesView: React.FC<GamesViewProps> = ({ currentLang }) => {
     <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 w-full flex flex-col items-center">
       {/* Header */}
       <div className="text-center space-y-4 max-w-3xl mx-auto w-full">
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1 text-xs font-bold tracking-wider text-amber-300 uppercase">
-          <Sparkles className="h-3.5 w-3.5" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-white/90 px-4 py-1 text-xs font-bold tracking-wider text-amber-800 uppercase shadow-sm">
+          <Sparkles className="h-3.5 w-3.5 text-amber-600" />
           <span>Interactive Culture & Language Games</span>
         </div>
-        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide break-words">
+        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-wide break-words">
           {t.games.title}
         </h1>
-        <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-serif-culture">
+        <p className="text-xs sm:text-base text-slate-600 leading-relaxed font-serif-culture">
           {t.games.subtitle}
         </p>
 
         {/* Live Score Counter & Streak */}
-        <div className="inline-flex max-w-[95vw] flex-wrap items-center justify-center gap-3 sm:gap-6 rounded-2xl border border-amber-500/30 bg-slate-900/80 px-4 sm:px-6 py-2 shadow-xl">
+        <div className="inline-flex max-w-[95vw] flex-wrap items-center justify-center gap-3 sm:gap-6 rounded-2xl border border-slate-200/90 bg-white/90 px-4 sm:px-6 py-2 shadow-md">
           <div className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-amber-400" />
-            <span className="text-xs text-slate-400 uppercase font-semibold">Score:</span>
-            <span className="font-cinzel text-lg font-bold text-amber-300">{score}</span>
+            <Trophy className="h-5 w-5 text-amber-600" />
+            <span className="text-xs text-slate-500 uppercase font-semibold">Score:</span>
+            <span className="font-cinzel text-lg font-bold text-amber-700">{score}</span>
           </div>
-          <div className="h-4 w-px bg-slate-700" />
+          <div className="h-4 w-px bg-slate-300" />
           <div className="flex items-center gap-2">
-            <Flame className="h-5 w-5 text-orange-400 animate-pulse" />
-            <span className="text-xs text-slate-400 uppercase font-semibold">Streak:</span>
-            <span className="font-cinzel text-lg font-bold text-orange-400">{streak}</span>
+            <Flame className="h-5 w-5 text-orange-600 animate-pulse" />
+            <span className="text-xs text-slate-500 uppercase font-semibold">Streak:</span>
+            <span className="font-cinzel text-lg font-bold text-orange-600">{streak}</span>
           </div>
           <button
             onClick={handleResetAll}
-            className="text-xs text-slate-400 hover:text-white flex items-center gap-1 border-l border-slate-700 pl-4"
+            className="text-xs text-slate-500 hover:text-slate-900 flex items-center gap-1 border-l border-slate-300 pl-4 cursor-pointer"
           >
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </button>
@@ -189,10 +189,10 @@ export const GamesView: React.FC<GamesViewProps> = ({ currentLang }) => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+            className={`rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
               activeTab === tab.id
-                ? 'bg-amber-500 text-slate-950 shadow-lg'
-                : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
+                : 'bg-white/90 text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 shadow-sm'
             }`}
           >
             {tab.label}

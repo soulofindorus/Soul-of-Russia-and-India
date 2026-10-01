@@ -418,36 +418,36 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang })
   return (
     <div className="min-h-screen bg-[#070b13] text-slate-100 pb-24 w-full flex flex-col items-center overflow-x-hidden">
       {/* Hero Header */}
-      <section className="relative w-full overflow-hidden border-b border-amber-500/20 bg-gradient-to-b from-[#0e1726] via-[#090d16] to-[#070b13] py-12 sm:py-16 px-3 sm:px-6 lg:px-8 flex flex-col items-center">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(245,158,11,0.15),rgba(255,255,255,0))] pointer-events-none" />
+      <section className="relative w-full overflow-hidden border-b border-amber-500/20 bg-gradient-to-b from-white/80 via-white/50 to-transparent py-12 sm:py-16 px-3 sm:px-6 lg:px-8 flex flex-col items-center">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(245,158,11,0.1),rgba(255,255,255,0))] pointer-events-none" />
         
         <div className="relative mx-auto max-w-7xl w-full">
           <div className="flex flex-col items-center text-center">
-            <div className="inline-flex max-w-[95vw] flex-wrap items-center justify-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 sm:px-4 py-1.5 text-xs font-semibold text-amber-400 backdrop-blur-md mb-6">
-              <Landmark className="h-4 w-4" />
+            <div className="inline-flex max-w-[95vw] flex-wrap items-center justify-center gap-2 rounded-full border border-amber-500/40 bg-white/90 px-3.5 sm:px-4 py-1.5 text-xs font-semibold text-amber-800 shadow-sm backdrop-blur-md mb-6">
+              <Landmark className="h-4 w-4 text-amber-600" />
               <span>EURASIAN PREHISTORIC & ANCIENT CIVILIZATIONS</span>
             </div>
 
-            <h1 className="text-2xl xs:text-3xl sm:text-5xl lg:text-6xl font-serif font-bold tracking-tight text-slate-50 max-w-4xl leading-tight break-words">
+            <h1 className="text-2xl xs:text-3xl sm:text-5xl lg:text-6xl font-serif font-bold tracking-tight text-slate-900 max-w-4xl leading-tight break-words">
               {archT.title}
             </h1>
 
-            <p className="mt-4 max-w-3xl text-xs sm:text-base text-slate-300 leading-relaxed font-light">
+            <p className="mt-4 max-w-3xl text-xs sm:text-base text-slate-600 leading-relaxed font-normal">
               {archT.subtitle}
             </p>
 
             {/* Quick Country Highlight Badges */}
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs font-medium text-amber-300">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white/90 border border-slate-200 text-xs font-semibold text-amber-800 shadow-sm">
                 🇮🇳 Indus Valley Civilisation (Dholavira, Lothal, Rakhigarhi)
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs font-medium text-sky-300">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white/90 border border-slate-200 text-xs font-semibold text-blue-800 shadow-sm">
                 🇷🇺 Ancient Greek & Bosporan (Phanagoria on Taman Peninsula)
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs font-medium text-emerald-300">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white/90 border border-slate-200 text-xs font-semibold text-emerald-800 shadow-sm">
                 🇷🇺 Viking-Slavic Metropolis (Gnezdovo on Dnieper)
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs font-medium text-purple-300">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white/90 border border-slate-200 text-xs font-semibold text-purple-800 shadow-sm">
                 🇷🇺 Sintashta-Arkaim & Denisova Cave
               </span>
             </div>

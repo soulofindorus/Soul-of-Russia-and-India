@@ -138,21 +138,21 @@ export const OpportunitiesView: React.FC<OpportunitiesViewProps> = ({
     <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 w-full flex flex-col items-center">
       {/* Header */}
       <div className="text-center space-y-4 max-w-3xl mx-auto w-full">
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1 text-xs font-bold tracking-wider text-amber-300 uppercase">
-          <GraduationCap className="h-3.5 w-3.5" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-white/90 px-4 py-1 text-xs font-bold tracking-wider text-amber-800 uppercase shadow-sm">
+          <GraduationCap className="h-3.5 w-3.5 text-amber-600" />
           <span>Bilateral Youth & Academic Portal</span>
         </div>
-        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide break-words">
+        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-wide break-words">
           {t.opportunities.title}
         </h1>
-        <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-serif-culture">
+        <p className="text-xs sm:text-base text-slate-600 leading-relaxed font-serif-culture">
           {t.opportunities.subtitle}
         </p>
 
         <div className="pt-2 flex flex-wrap items-center justify-center gap-2 sm:gap-3 w-full">
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-600 to-amber-500 px-4 sm:px-5 py-2 text-xs font-bold text-white shadow-lg hover:from-amber-500 hover:to-amber-400 transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-600 to-amber-500 px-4 sm:px-5 py-2 text-xs font-bold text-white shadow-md hover:from-amber-500 hover:to-amber-400 transition-all cursor-pointer"
           >
             <PlusCircle className="h-4 w-4" />
             <span>Propose / Add New Opportunity</span>
@@ -160,22 +160,22 @@ export const OpportunitiesView: React.FC<OpportunitiesViewProps> = ({
 
           <button
             onClick={() => setIsSchemaModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-950/40 px-3.5 sm:px-4 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-900/50 hover:border-emerald-400 transition-all cursor-pointer shadow-sm"
+            className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-white/90 px-3.5 sm:px-4 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 transition-all cursor-pointer shadow-sm"
             title="Connected to Supabase Project dogqlfykkstebvpipplk"
           >
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
             </span>
             <span>Supabase Connected</span>
-            <span className="text-[10px] text-emerald-400/80 font-mono">({SUPABASE_PROJECT_ID})</span>
-            <Database className="h-3.5 w-3.5 text-emerald-400" />
+            <span className="text-[10px] text-emerald-700 font-mono font-bold">({SUPABASE_PROJECT_ID})</span>
+            <Database className="h-3.5 w-3.5 text-emerald-600" />
           </button>
         </div>
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="rounded-2xl border border-slate-800 bg-[#0c1424] p-4 sm:p-6 shadow-xl space-y-4 w-full">
+      <div className="rounded-2xl border border-slate-200/90 bg-white/85 p-4 sm:p-6 shadow-md space-y-4 w-full">
         {/* Search Input */}
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -184,7 +184,7 @@ export const OpportunitiesView: React.FC<OpportunitiesViewProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t.opportunities.searchPlaceholder}
-            className="w-full rounded-xl border border-slate-700 bg-slate-900/90 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+            className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:border-amber-500 focus:outline-none shadow-sm"
           />
         </div>
 
@@ -192,15 +192,15 @@ export const OpportunitiesView: React.FC<OpportunitiesViewProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
           <div className="flex flex-wrap items-center gap-2">
             {/* Country Selector */}
-            <div className="flex flex-wrap rounded-lg border border-slate-700 bg-slate-900 p-1 gap-1">
+            <div className="flex flex-wrap rounded-lg border border-slate-200 bg-slate-100 p-1 gap-1">
               {['All', 'Russia', 'India', 'International'].map((c) => (
                 <button
                   key={c}
                   onClick={() => setSelectedCountry(c)}
-                  className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                  className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors cursor-pointer ${
                     selectedCountry === c
-                      ? 'bg-amber-500 text-slate-950'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   {c}

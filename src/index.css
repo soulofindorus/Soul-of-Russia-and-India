@@ -15,8 +15,8 @@
 
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    color: #e2e8f0;
-    background-color: #0b101b;
+    color: #1e293b;
+    background-color: #eef4f9;
     overflow-x: hidden;
     width: 100%;
     max-width: 100vw;
@@ -54,39 +54,41 @@
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #090e18;
+  background: #e2e8f0;
 }
 ::-webkit-scrollbar-thumb {
-  background: #25334c;
+  background: #94a3b8;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #d97706;
 }
 
-/* Glassmorphism accents */
+/* Glassmorphism accents for light Northern Lights theme */
 .glass-panel {
-  background: rgba(16, 25, 44, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(212, 175, 55, 0.15);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
 .glass-panel-light {
-  background: rgba(23, 37, 63, 0.55);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
 }
 
 /* Cultural patterns */
 .bg-ornament-pattern {
-  background-image: radial-gradient(rgba(212, 175, 55, 0.12) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(212, 175, 55, 0.18) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
 .text-gold-gradient {
-  background: linear-gradient(135deg, #fce09b 0%, #d4af37 50%, #aa8420 100%);
+  background: linear-gradient(135deg, #b45309 0%, #d97706 50%, #92400e 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -167,4 +169,98 @@
   height: 0 !important;
   opacity: 0 !important;
 }
+
+/* Ambient Cultural Background Animations */
+@keyframes aurora-slow {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(25px, 20px) scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes aurora-reverse {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate(-25px, -20px) scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes spin-ultra-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-reverse-ultra-slow {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(-16px) scale(1.25);
+    opacity: 0.8;
+  }
+}
+
+@keyframes pulse-gentle {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.04);
+  }
+}
+
+.animate-aurora-slow {
+  animation: aurora-slow 16s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-aurora-reverse {
+  animation: aurora-reverse 18s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-spin-ultra-slow {
+  animation: spin-ultra-slow 160s linear infinite;
+  will-change: transform;
+}
+
+.animate-spin-reverse-ultra-slow {
+  animation: spin-reverse-ultra-slow 180s linear infinite;
+  will-change: transform;
+}
+
+.animate-float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-pulse-gentle {
+  animation: pulse-gentle 10s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
 

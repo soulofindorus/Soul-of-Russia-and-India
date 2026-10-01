@@ -72,27 +72,27 @@ export const LanguageView: React.FC<LanguageViewProps> = ({ currentLang }) => {
     <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 w-full flex flex-col items-center">
       {/* Header */}
       <div className="text-center space-y-4 max-w-3xl mx-auto w-full">
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1 text-xs font-bold tracking-wider text-amber-300 uppercase">
-          <BookOpen className="h-3.5 w-3.5" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-white/90 px-4 py-1 text-xs font-bold tracking-wider text-amber-800 uppercase shadow-sm">
+          <BookOpen className="h-3.5 w-3.5 text-amber-600" />
           <span>Interactive Cultural Linguistics</span>
         </div>
-        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide break-words">
+        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-wide break-words">
           {t.language.title}
         </h1>
-        <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-serif-culture">
+        <p className="text-xs sm:text-base text-slate-600 leading-relaxed font-serif-culture">
           {t.language.subtitle}
         </p>
       </div>
 
       {/* Language Choice Switcher */}
       <div className="flex justify-center">
-        <div className="inline-flex rounded-2xl border border-amber-500/30 bg-slate-900/90 p-1.5 shadow-xl">
+        <div className="inline-flex rounded-2xl border border-slate-200/90 bg-white/90 p-1.5 shadow-md">
           <button
             onClick={() => setActiveLanguageTab('russian')}
-            className={`flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-all cursor-pointer ${
               activeLanguageTab === 'russian'
                 ? 'bg-gradient-to-r from-blue-700 to-indigo-700 text-white shadow-lg'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-700 hover:text-slate-950 hover:bg-slate-50'
             }`}
           >
             <span className="text-lg">🇷🇺</span>
@@ -100,10 +100,10 @@ export const LanguageView: React.FC<LanguageViewProps> = ({ currentLang }) => {
           </button>
           <button
             onClick={() => setActiveLanguageTab('hindi')}
-            className={`flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-all cursor-pointer ${
               activeLanguageTab === 'hindi'
                 ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-700 hover:text-slate-950 hover:bg-slate-50'
             }`}
           >
             <span className="text-lg">🇮🇳</span>

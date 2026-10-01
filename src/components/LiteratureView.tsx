@@ -25,44 +25,44 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang }) =
     <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 sm:space-y-16 w-full flex flex-col items-center">
       {/* Header */}
       <div className="text-center space-y-4 max-w-3xl mx-auto w-full">
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1 text-xs font-bold tracking-wider text-amber-300 uppercase">
-          <Feather className="h-3.5 w-3.5" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-white/90 px-4 py-1 text-xs font-bold tracking-wider text-amber-800 uppercase shadow-sm">
+          <Feather className="h-3.5 w-3.5 text-amber-600" />
           <span>Poetry • Philosophy • Moral Awakening</span>
         </div>
-        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide break-words">
+        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-wide break-words">
           {t.literature.title}
         </h1>
-        <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-serif-culture">
+        <p className="text-xs sm:text-base text-slate-600 leading-relaxed font-serif-culture">
           {t.literature.subtitle}
         </p>
       </div>
 
       {/* Literary Journey Timeline Visual Header */}
-      <div className="rounded-3xl border border-amber-500/20 bg-gradient-to-r from-[#0c1424] via-[#101b33] to-[#0c1424] p-4 sm:p-8 shadow-xl w-full">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
-          <h2 className="font-cinzel text-lg font-bold text-amber-300 flex items-center gap-2">
-            <Clock className="h-4 w-4" />
+      <div className="rounded-3xl border border-slate-200/90 bg-white/85 p-4 sm:p-8 shadow-md w-full">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
+          <h2 className="font-cinzel text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-amber-600" />
             <span>{t.literature.timelineTitle} (1799 – 2008)</span>
           </h2>
-          <span className="text-xs text-slate-400">Click author below to view dossier</span>
+          <span className="text-xs text-slate-500">Click author below to view dossier</span>
         </div>
 
         {/* Horizontal Timeline Track */}
         <div className="relative flex items-center justify-between overflow-x-auto pb-4 gap-4 scrollbar-thin">
-          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500/10 via-amber-400/40 to-amber-500/10 -translate-y-1/2 z-0" />
+          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500/20 via-amber-400/60 to-amber-500/20 -translate-y-1/2 z-0" />
           {authorsData.map((author) => {
             const isSelected = selectedAuthor?.id === author.id;
             return (
               <button
                 key={author.id}
                 onClick={() => setSelectedAuthor(author)}
-                className={`group relative z-10 flex shrink-0 flex-col items-center gap-2 text-center transition-transform hover:scale-105 focus:outline-none ${
-                  isSelected ? 'scale-110' : 'opacity-80 hover:opacity-100'
+                className={`group relative z-10 flex shrink-0 flex-col items-center gap-2 text-center transition-transform hover:scale-105 focus:outline-none cursor-pointer ${
+                  isSelected ? 'scale-110' : 'opacity-85 hover:opacity-100'
                 }`}
               >
                 <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-full border-2 overflow-hidden bg-slate-900 shadow-md ${
-                    isSelected ? 'border-amber-400 ring-2 ring-amber-400/40' : 'border-slate-700'
+                  className={`flex h-12 w-12 items-center justify-center rounded-full border-2 overflow-hidden bg-white shadow-md ${
+                    isSelected ? 'border-amber-500 ring-2 ring-amber-400/50' : 'border-slate-300'
                   }`}
                 >
                   <img
@@ -72,10 +72,10 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang }) =
                   />
                 </div>
                 <div className="max-w-[100px]">
-                  <span className="font-cinzel block text-[11px] font-bold text-white truncate group-hover:text-amber-300">
+                  <span className="font-cinzel block text-[11px] font-bold text-slate-800 truncate group-hover:text-amber-700">
                     {author.name.split(' ').pop()}
                   </span>
-                  <span className="block text-[9px] text-amber-400/80">{author.years}</span>
+                  <span className="block text-[9px] text-amber-700 font-semibold">{author.years}</span>
                 </div>
               </button>
             );

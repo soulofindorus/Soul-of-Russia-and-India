@@ -19,14 +19,14 @@ export const ConnectionsView: React.FC<ConnectionsViewProps> = ({ currentLang })
     <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 sm:space-y-16 w-full flex flex-col items-center">
       {/* Header */}
       <div className="text-center space-y-4 max-w-3xl mx-auto w-full">
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1 text-xs font-bold tracking-wider text-amber-300 uppercase">
-          <Sparkles className="h-3.5 w-3.5" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-white/90 px-4 py-1 text-xs font-bold tracking-wider text-amber-800 uppercase shadow-sm">
+          <Sparkles className="h-3.5 w-3.5 text-amber-600" />
           <span>Bilateral Cultural Bridges</span>
         </div>
-        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide break-words">
+        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-wide break-words">
           {t.connections.title}
         </h1>
-        <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-serif-culture">
+        <p className="text-xs sm:text-base text-slate-600 leading-relaxed font-serif-culture">
           {t.connections.subtitle}
         </p>
       </div>
@@ -42,10 +42,10 @@ export const ConnectionsView: React.FC<ConnectionsViewProps> = ({ currentLang })
             <button
               key={conn.id}
               onClick={() => setActiveConnectionId(conn.id)}
-              className={`rounded-2xl px-5 py-3 text-xs sm:text-sm font-bold transition-all ${
+              className={`rounded-2xl px-5 py-3 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 isSelected
-                  ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 text-slate-950 shadow-xl scale-105 ring-2 ring-amber-400'
-                  : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800 hover:bg-slate-850'
+                  ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 text-slate-950 shadow-lg scale-105 ring-2 ring-amber-400'
+                  : 'bg-white/90 text-slate-700 hover:text-slate-950 border border-slate-200/90 hover:bg-slate-50 shadow-sm'
               }`}
             >
               {title}
