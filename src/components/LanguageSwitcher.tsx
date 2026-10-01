@@ -155,9 +155,27 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       role="region"
       aria-label="Language selection"
     >
-      {/* Segmented Pill Bar */}
+      {/* Mobile Compact Single Button (Shown on small screens) */}
+      <button
+        onClick={() => setDropdownOpen(!dropdownOpen)}
+        type="button"
+        aria-expanded={dropdownOpen}
+        aria-haspopup="true"
+        title="Change Language"
+        className="flex sm:hidden items-center gap-1.5 rounded-full border border-amber-500/40 bg-[#090e18]/95 px-2.5 py-1 text-xs font-semibold text-white shadow-sm focus:outline-none shrink-0"
+      >
+        <span className="text-xs">{currentOption.flag}</span>
+        <span className="font-serif-culture font-bold text-amber-200">{currentOption.shortLabel}</span>
+        <ChevronDown
+          className={`h-3 w-3 text-amber-400 transition-transform duration-200 ${
+            dropdownOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {/* Segmented Pill Bar for Tablet/Desktop */}
       <div
-        className="flex items-center rounded-full border border-amber-500/30 bg-[#090e18]/90 p-1 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] backdrop-blur-md"
+        className="hidden sm:flex items-center rounded-full border border-amber-500/30 bg-[#090e18]/90 p-1 shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] backdrop-blur-md"
         role="radiogroup"
         aria-label="Interface language"
       >

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Language } from '../types';
 import { translations } from '../i18n/translations';
-import { Compass, Sparkles, GraduationCap, Heart, Award, Mail, Globe, Users, Target, BookOpen, Send, Youtube, Instagram } from 'lucide-react';
+import { submitContactMessage } from '../lib/supabase';
+import { Compass, Sparkles, GraduationCap, Heart, Award, Mail, Globe, Users, Target, BookOpen, Send, Youtube, Instagram, CheckCircle2, MessageSquare } from 'lucide-react';
 import sarikaImg from '../assets/images/regenerated_image_1790026251186.jpg';
 import ritikImg from '../assets/images/regenerated_image_1790028450398.jpg';
 
@@ -13,24 +14,52 @@ interface AboutViewProps {
 export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate }) => {
   const t = translations[currentLang];
 
+  const [formName, setFormName] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formSubject, setFormSubject] = useState('');
+  const [formMessage, setFormMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName.trim() || !formEmail.trim() || !formMessage.trim()) return;
+
+    setIsSubmitting(true);
+    await submitContactMessage({
+      name: formName.trim(),
+      email: formEmail.trim(),
+      subject: formSubject.trim() || 'General Inquiry',
+      message: formMessage.trim(),
+    });
+
+    setIsSubmitting(false);
+    setSubmitSuccess(true);
+    setFormName('');
+    setFormEmail('');
+    setFormSubject('');
+    setFormMessage('');
+    setTimeout(() => setSubmitSuccess(false), 6000);
+  };
+
   return (
-    <section className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-16">
+    <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 sm:space-y-16 w-full flex flex-col items-center">
       {/* Header */}
-      <div className="text-center space-y-4 max-w-3xl mx-auto">
+      <div className="text-center space-y-4 max-w-3xl mx-auto w-full">
         <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1 text-xs font-bold tracking-wider text-amber-300 uppercase">
           <Users className="h-3.5 w-3.5" />
           <span>Cultural Diplomacy • Youth Engagement</span>
         </div>
-        <h1 className="font-cinzel text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide">
+        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide break-words">
           {t.about.title}
         </h1>
-        <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-serif-culture">
+        <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-serif-culture">
           {t.about.leadText}
         </p>
       </div>
 
       {/* Vision & Purpose Manifest Card */}
-      <div className="relative overflow-hidden rounded-3xl border border-amber-500/25 bg-gradient-to-b from-[#0e172a] to-[#070c18] p-8 sm:p-12 shadow-2xl space-y-8">
+      <div className="relative overflow-hidden rounded-3xl border border-amber-500/25 bg-gradient-to-b from-[#0e172a] to-[#070c18] p-5 sm:p-12 shadow-2xl space-y-8 w-full">
         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -244,6 +273,100 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Collaboration & Contact Form (Backed by Supabase) */}
+      <div className="rounded-3xl border border-amber-500/25 bg-[#091120] p-8 sm:p-12 shadow-2xl space-y-6">
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-bold text-amber-300 uppercase tracking-wider mb-2">
+            <MessageSquare className="h-3.5 w-3.5" />
+            <span>Connect & Propose Initiatives</span>
+          </div>
+          <h3 className="font-cinzel text-2xl sm:text-3xl font-bold text-white">
+            Send an Inquiry or Collaboration Proposal
+          </h3>
+          <p className="mt-1 text-xs sm:text-sm text-slate-400">
+            Messages are stored securely in the Supabase backend database for project coordinators to review.
+          </p>
+        </div>
+
+        {submitSuccess ? (
+          <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/30 p-6 text-center space-y-2 animate-fade-in">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+              <CheckCircle2 className="h-6 w-6" />
+            </div>
+            <h4 className="font-cinzel text-lg font-bold text-emerald-200">
+              Message Delivered to Backend!
+            </h4>
+            <p className="text-xs text-slate-300">
+              Thank you for reaching out. Your message has been recorded into Supabase and our project team will review it shortly.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleContactSubmit} className="space-y-4 max-w-3xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Your Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="e.g. Elena Petrova or Aarav Sharma"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900/90 p-3 text-xs text-slate-100 placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  placeholder="you@university.edu"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900/90 p-3 text-xs text-slate-100 placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Subject / Area of Interest</label>
+              <input
+                type="text"
+                value={formSubject}
+                onChange={(e) => setFormSubject(e.target.value)}
+                placeholder="e.g. Student Exchange, Archaeological Research, Hindi Translation"
+                className="w-full rounded-xl border border-slate-700 bg-slate-900/90 p-3 text-xs text-slate-100 placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Message or Project Proposal *</label>
+              <textarea
+                required
+                rows={4}
+                value={formMessage}
+                onChange={(e) => setFormMessage(e.target.value)}
+                placeholder="Share your ideas, research questions, or collaboration proposals..."
+                className="w-full rounded-xl border border-slate-700 bg-slate-900/90 p-3 text-xs text-slate-100 placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-[11px] text-slate-500">
+                🔒 Connected to Supabase Project: <span className="font-mono text-emerald-400">dogqlfykkstebvpipplk</span>
+              </span>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-6 py-2.5 text-xs font-bold text-slate-950 hover:from-amber-500 hover:to-amber-400 shadow-md transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Send className="h-3.5 w-3.5" />
+                <span>{isSubmitting ? 'Sending to Supabase...' : 'Send Message'}</span>
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Call to Action Banner */}

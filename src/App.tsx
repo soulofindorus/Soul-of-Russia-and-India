@@ -20,6 +20,7 @@ import { RegionModal } from './components/RegionModal';
 import { VideoPlayerModal } from './components/VideoPlayerModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { fetchOpportunitiesFromSupabase, insertOpportunityToSupabase } from './lib/supabase';
 
 export default function App() {
   const [currentLang, setCurrentLang] = useState<Language>(() => {
@@ -37,6 +38,15 @@ export default function App() {
   // Dynamic datasets
   const allRegions = [...initialRussianRegions, ...initialIndianRegions];
   const [opportunities, setOpportunities] = useState<Opportunity[]>(initialOpportunities);
+
+  // Sync opportunities with Supabase backend
+  useEffect(() => {
+    fetchOpportunitiesFromSupabase().then((data) => {
+      if (data && data.length > 0) {
+        setOpportunities(data);
+      }
+    });
+  }, []);
 
   const handleLanguageChange = (lang: Language) => {
     setCurrentLang(lang);
@@ -78,8 +88,9 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleAddOpportunity = (newOpp: Opportunity) => {
+  const handleAddOpportunity = async (newOpp: Opportunity) => {
     setOpportunities((prev) => [newOpp, ...prev]);
+    await insertOpportunityToSupabase(newOpp);
   };
 
   const handlePlayFeaturedVideo = () => {
@@ -108,7 +119,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#070b13] text-slate-100 selection:bg-amber-500 selection:text-slate-950 font-sans">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#070b13] text-slate-100 selection:bg-amber-500 selection:text-slate-950 font-sans flex flex-col items-center">
       {/* Top Sticky Navigation */}
       <Navbar
         currentLang={currentLang}
@@ -119,7 +130,7 @@ export default function App() {
       />
 
       {/* Main View Router */}
-      <main className="relative">
+      <main className="relative w-full max-w-full overflow-x-hidden flex-1 flex flex-col items-center">
         <ErrorBoundary key={activeSection}>
           {activeSection === 'home' && (
             <HeroSection

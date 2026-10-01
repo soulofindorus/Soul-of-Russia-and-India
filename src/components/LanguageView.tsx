@@ -69,17 +69,17 @@ export const LanguageView: React.FC<LanguageViewProps> = ({ currentLang }) => {
   };
 
   return (
-    <section className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12">
+    <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 w-full flex flex-col items-center">
       {/* Header */}
-      <div className="text-center space-y-4 max-w-3xl mx-auto">
+      <div className="text-center space-y-4 max-w-3xl mx-auto w-full">
         <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1 text-xs font-bold tracking-wider text-amber-300 uppercase">
           <BookOpen className="h-3.5 w-3.5" />
           <span>Interactive Cultural Linguistics</span>
         </div>
-        <h1 className="font-cinzel text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide">
+        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide break-words">
           {t.language.title}
         </h1>
-        <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-serif-culture">
+        <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-serif-culture">
           {t.language.subtitle}
         </p>
       </div>

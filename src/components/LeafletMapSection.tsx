@@ -330,10 +330,10 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
         </div>
 
         {/* View Focus Switcher */}
-        <div className="flex items-center gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-amber-500/30 backdrop-blur-md shadow-lg self-start md:self-auto">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 bg-slate-900/90 p-1.5 rounded-2xl border border-amber-500/30 backdrop-blur-md shadow-lg w-full sm:w-auto">
           <button
             onClick={() => handleFocusChange('both')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-none ${
               activeFocus === 'both'
                 ? 'bg-amber-500 text-slate-950 shadow-[0_0_15px_rgba(212,175,55,0.4)]'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800'
@@ -344,7 +344,7 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
           </button>
           <button
             onClick={() => handleFocusChange('Russia')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-none ${
               activeFocus === 'Russia'
                 ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800'
@@ -355,7 +355,7 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
           </button>
           <button
             onClick={() => handleFocusChange('India')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-none ${
               activeFocus === 'India'
                 ? 'bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.5)]'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800'
@@ -370,7 +370,7 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
       {/* Main Map Box with Interactive Overlay */}
       <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-[#070c18] shadow-2xl">
         {/* Top Floating Legend & Info Bar with Satellite/Layer Switcher */}
-        <div className="absolute top-3 left-3 right-16 z-[1000] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        <div className="absolute top-2 left-2 right-2 sm:top-3 sm:left-3 sm:right-16 z-[1000] flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 pointer-events-none">
           <div className="flex flex-wrap items-center gap-2">
             <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-slate-700/80 bg-[#080f1e]/90 px-3 py-1.5 text-xs text-slate-200 backdrop-blur-md shadow-md">
               <span className="flex h-2.5 w-2.5 rounded-full bg-blue-400 ring-2 ring-blue-500/40" />

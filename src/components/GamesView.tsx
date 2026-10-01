@@ -141,22 +141,22 @@ export const GamesView: React.FC<GamesViewProps> = ({ currentLang }) => {
   };
 
   return (
-    <section className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12">
+    <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 w-full flex flex-col items-center">
       {/* Header */}
-      <div className="text-center space-y-4 max-w-3xl mx-auto">
+      <div className="text-center space-y-4 max-w-3xl mx-auto w-full">
         <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1 text-xs font-bold tracking-wider text-amber-300 uppercase">
           <Sparkles className="h-3.5 w-3.5" />
           <span>Interactive Culture & Language Games</span>
         </div>
-        <h1 className="font-cinzel text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide">
+        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide break-words">
           {t.games.title}
         </h1>
-        <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-serif-culture">
+        <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-serif-culture">
           {t.games.subtitle}
         </p>
 
         {/* Live Score Counter & Streak */}
-        <div className="inline-flex items-center gap-6 rounded-2xl border border-amber-500/30 bg-slate-900/80 px-6 py-2 shadow-xl">
+        <div className="inline-flex max-w-[95vw] flex-wrap items-center justify-center gap-3 sm:gap-6 rounded-2xl border border-amber-500/30 bg-slate-900/80 px-4 sm:px-6 py-2 shadow-xl">
           <div className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-amber-400" />
             <span className="text-xs text-slate-400 uppercase font-semibold">Score:</span>

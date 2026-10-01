@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Language } from '../types';
 import { translations } from '../i18n/translations';
-import { Compass, Sparkles, Send, Youtube, Instagram, Heart } from 'lucide-react';
+import { subscribeNewsletter } from '../lib/supabase';
+import { Compass, Sparkles, Send, Youtube, Instagram, Heart, CheckCircle2, Mail } from 'lucide-react';
 
 interface FooterProps {
   currentLang: Language;
@@ -11,13 +12,28 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ currentLang, onLanguageChange, onNavigate }) => {
   const t = translations[currentLang];
+  const [newsEmail, setNewsEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsEmail.trim() || !newsEmail.includes('@')) return;
+
+    setSubmitting(true);
+    await subscribeNewsletter(newsEmail.trim());
+    setSubmitting(false);
+    setSubscribed(true);
+    setNewsEmail('');
+    setTimeout(() => setSubscribed(false), 5000);
+  };
 
   return (
-    <footer className="relative border-t border-amber-500/20 bg-[#070b13] text-slate-300">
+    <footer className="relative border-t border-amber-500/20 bg-[#070b13] text-slate-300 w-full overflow-x-hidden">
       {/* Decorative top border gradient */}
       <div className="h-[2px] w-full bg-gradient-to-r from-blue-700 via-amber-400 to-orange-600" />
 
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 w-full">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-4">
           {/* Brand & Mission */}
           <div className="lg:col-span-2 space-y-4">
@@ -183,6 +199,44 @@ export const Footer: React.FC<FooterProps> = ({ currentLang, onLanguageChange, o
               Dedicated to youth opportunities, Russian and Indian literature, archaeology, and intercultural understanding.
             </div>
           </div>
+        </div>
+
+        {/* Newsletter Subscription Row (Connected to Supabase) */}
+        <div className="mt-12 rounded-2xl border border-amber-500/20 bg-slate-900/50 p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-1 text-center md:text-left">
+            <h4 className="font-cinzel text-base font-bold text-white flex items-center justify-center md:justify-start gap-2">
+              <Mail className="h-4 w-4 text-amber-400" />
+              <span>Stay Connected to the Cultural Bridge</span>
+            </h4>
+            <p className="text-xs text-slate-400">
+              Receive updates on academic opportunities, research expeditions, and literature publications directly.
+            </p>
+          </div>
+
+          {subscribed ? (
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40 px-4 py-2 text-xs font-semibold text-emerald-300">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              <span>Subscribed to updates!</span>
+            </div>
+          ) : (
+            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row w-full md:w-auto items-stretch sm:items-center gap-2">
+              <input
+                type="email"
+                required
+                value={newsEmail}
+                onChange={(e) => setNewsEmail(e.target.value)}
+                placeholder="Enter your email address..."
+                className="w-full sm:w-72 rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+              />
+              <button
+                type="submit"
+                disabled={submitting}
+                className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 transition-colors shrink-0 disabled:opacity-50 cursor-pointer text-center"
+              >
+                {submitting ? '...' : 'Subscribe'}
+              </button>
+            </form>
+          )}
         </div>
 
         {/* Bottom copyright */}

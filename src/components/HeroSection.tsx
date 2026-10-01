@@ -34,33 +34,33 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const t = translations[currentLang];
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative w-full overflow-hidden flex flex-col items-center">
       {/* Dynamic Background with Russia ⇄ India Split Atmosphere */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
         {/* Left side deep blue Russian glow */}
-        <div className="absolute -top-32 -left-32 h-[600px] w-[600px] rounded-full bg-blue-900/25 blur-[120px]" />
+        <div className="absolute -top-32 -left-32 h-[500px] w-[500px] sm:h-[600px] sm:w-[600px] rounded-full bg-blue-900/25 blur-[100px] sm:blur-[120px]" />
         {/* Right side saffron warm Indian glow */}
-        <div className="absolute -top-32 -right-32 h-[600px] w-[600px] rounded-full bg-orange-700/20 blur-[120px]" />
+        <div className="absolute -top-32 -right-32 h-[500px] w-[500px] sm:h-[600px] sm:w-[600px] rounded-full bg-orange-700/20 blur-[100px] sm:blur-[120px]" />
         {/* Center gold subtle aura */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[450px] w-[650px] rounded-full bg-amber-500/10 blur-[140px]" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[350px] w-[500px] sm:h-[450px] sm:w-[650px] rounded-full bg-amber-500/10 blur-[120px] sm:blur-[140px]" />
         {/* Subtle decorative grid/ornament pattern */}
         <div className="absolute inset-0 bg-ornament-pattern opacity-30 pointer-events-none" />
       </div>
 
       {/* Main Hero Banner */}
-      <div className="mx-auto max-w-7xl px-4 pt-16 pb-20 sm:px-6 lg:px-8 text-center space-y-8">
+      <div className="mx-auto w-full max-w-7xl px-3 pt-12 pb-16 sm:px-6 lg:px-8 text-center space-y-6 sm:space-y-8 flex flex-col items-center">
         {/* Visual Bridge Badge */}
-        <div className="inline-flex items-center gap-3 rounded-full border border-amber-400/40 bg-slate-900/80 px-5 py-2 shadow-[0_0_20px_rgba(212,175,55,0.15)] backdrop-blur-md">
-          <span className="flex items-center gap-1.5 text-xs font-bold text-blue-300">
+        <div className="inline-flex max-w-[95vw] flex-wrap items-center justify-center gap-2 sm:gap-3 rounded-full border border-amber-400/40 bg-slate-900/80 px-3.5 py-1.5 sm:px-5 sm:py-2 text-[11px] sm:text-xs shadow-[0_0_20px_rgba(212,175,55,0.15)] backdrop-blur-md">
+          <span className="flex items-center gap-1 font-bold text-blue-300">
             <span>🇷🇺</span>
             <span>Россия</span>
           </span>
           <span className="text-amber-400">✦</span>
-          <span className="font-cinzel text-xs font-bold tracking-widest text-amber-200 uppercase">
+          <span className="font-cinzel font-bold tracking-wider text-amber-200 uppercase">
             Cultural Bridge • Мост Культур
           </span>
           <span className="text-amber-400">✦</span>
-          <span className="flex items-center gap-1.5 text-xs font-bold text-orange-300">
+          <span className="flex items-center gap-1 font-bold text-orange-300">
             <span>🇮🇳</span>
             <span>भारत</span>
           </span>
@@ -68,7 +68,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* Central Emblem */}
         <div className="mx-auto flex justify-center">
-          <div className="group relative flex h-28 w-28 sm:h-36 sm:w-36 items-center justify-center rounded-full border-2 border-amber-400/70 p-1 shadow-[0_0_35px_rgba(212,175,55,0.3)] backdrop-blur-md transition-transform duration-500 hover:scale-105">
+          <div className="group relative flex h-24 w-24 sm:h-36 sm:w-36 items-center justify-center rounded-full border-2 border-amber-400/70 p-1 shadow-[0_0_35px_rgba(212,175,55,0.3)] backdrop-blur-md transition-transform duration-500 hover:scale-105">
             <img
               src="/emblem.jpg"
               alt="Soul of Russia and India Emblem"
@@ -79,24 +79,24 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         </div>
 
         {/* Trilingual Main Headings */}
-        <div className="space-y-3 max-w-4xl mx-auto">
-          <h1 className="font-cinzel text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-wider text-slate-100 drop-shadow-lg">
+        <div className="space-y-3 max-w-4xl mx-auto w-full">
+          <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-wide sm:tracking-wider text-slate-100 drop-shadow-lg break-words">
             {t.hero.title}
           </h1>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 text-lg sm:text-2xl font-serif-culture text-amber-200">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-6 text-base xs:text-lg sm:text-2xl font-serif-culture text-amber-200">
             <span className="tracking-wide">Душа России и Индии</span>
             <span className="hidden sm:inline text-amber-500">•</span>
             <span className="font-devanagari tracking-wide text-orange-200">भारत और रूस की आत्मा</span>
           </div>
 
-          <p className="mx-auto max-w-2xl text-sm sm:text-base text-slate-300 leading-relaxed font-serif-culture pt-2">
+          <p className="mx-auto max-w-2xl text-xs sm:text-base text-slate-300 leading-relaxed font-serif-culture pt-1 sm:pt-2 px-2">
             “{t.hero.subtitle}”
           </p>
         </div>
 
         {/* Primary Call to Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 pt-1 sm:pt-2 w-full">
           <button
             onClick={() => onNavigate('heritage')}
             className="group flex items-center gap-2.5 rounded-full bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 px-8 py-3.5 text-sm font-bold text-slate-950 shadow-[0_0_25px_rgba(212,175,55,0.35)] transition-all hover:scale-105 hover:shadow-[0_0_35px_rgba(212,175,55,0.5)] focus:outline-none"

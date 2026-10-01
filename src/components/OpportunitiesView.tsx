@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Opportunity, Language, OpportunityCategory } from '../types';
 import { translations } from '../i18n/translations';
+import { SUPABASE_PROJECT_ID, SUPABASE_SCHEMA_SQL } from '../lib/supabase';
 import {
   GraduationCap,
   Search,
@@ -15,6 +16,9 @@ import {
   Users,
   Building,
   Globe,
+  Database,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 interface OpportunitiesViewProps {
@@ -39,6 +43,10 @@ export const OpportunitiesView: React.FC<OpportunitiesViewProps> = ({
 
   // Selected Opportunity Modal
   const [detailOpp, setDetailOpp] = useState<Opportunity | null>(null);
+
+  // Supabase Schema Modal State
+  const [isSchemaModalOpen, setIsSchemaModalOpen] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
 
   // Add Opportunity Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -127,33 +135,47 @@ export const OpportunitiesView: React.FC<OpportunitiesViewProps> = ({
   };
 
   return (
-    <section className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12">
+    <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 w-full flex flex-col items-center">
       {/* Header */}
-      <div className="text-center space-y-4 max-w-3xl mx-auto">
+      <div className="text-center space-y-4 max-w-3xl mx-auto w-full">
         <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1 text-xs font-bold tracking-wider text-amber-300 uppercase">
           <GraduationCap className="h-3.5 w-3.5" />
           <span>Bilateral Youth & Academic Portal</span>
         </div>
-        <h1 className="font-cinzel text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide">
+        <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-100 tracking-wide break-words">
           {t.opportunities.title}
         </h1>
-        <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-serif-culture">
+        <p className="text-xs sm:text-base text-slate-300 leading-relaxed font-serif-culture">
           {t.opportunities.subtitle}
         </p>
 
-        <div className="pt-2">
+        <div className="pt-2 flex flex-wrap items-center justify-center gap-2 sm:gap-3 w-full">
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-600 to-amber-500 px-5 py-2 text-xs font-bold text-white shadow-lg hover:from-amber-500 hover:to-amber-400 transition-all"
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-600 to-amber-500 px-4 sm:px-5 py-2 text-xs font-bold text-white shadow-lg hover:from-amber-500 hover:to-amber-400 transition-all cursor-pointer"
           >
             <PlusCircle className="h-4 w-4" />
             <span>Propose / Add New Opportunity</span>
+          </button>
+
+          <button
+            onClick={() => setIsSchemaModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-950/40 px-3.5 sm:px-4 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-900/50 hover:border-emerald-400 transition-all cursor-pointer shadow-sm"
+            title="Connected to Supabase Project dogqlfykkstebvpipplk"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>Supabase Connected</span>
+            <span className="text-[10px] text-emerald-400/80 font-mono">({SUPABASE_PROJECT_ID})</span>
+            <Database className="h-3.5 w-3.5 text-emerald-400" />
           </button>
         </div>
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="rounded-2xl border border-slate-800 bg-[#0c1424] p-6 shadow-xl space-y-4">
+      <div className="rounded-2xl border border-slate-800 bg-[#0c1424] p-4 sm:p-6 shadow-xl space-y-4 w-full">
         {/* Search Input */}
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -170,7 +192,7 @@ export const OpportunitiesView: React.FC<OpportunitiesViewProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
           <div className="flex flex-wrap items-center gap-2">
             {/* Country Selector */}
-            <div className="flex rounded-lg border border-slate-700 bg-slate-900 p-1">
+            <div className="flex flex-wrap rounded-lg border border-slate-700 bg-slate-900 p-1 gap-1">
               {['All', 'Russia', 'India', 'International'].map((c) => (
                 <button
                   key={c}
@@ -563,6 +585,91 @@ export const OpportunitiesView: React.FC<OpportunitiesViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Supabase Schema SQL Modal */}
+      {isSchemaModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-fade-in">
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-emerald-500/40 bg-[#0a121e] p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                  <Database className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-cinzel text-lg font-bold text-white">
+                    Supabase Backend Database Schema
+                  </h3>
+                  <p className="text-xs text-emerald-300/80">
+                    Project ID: <span className="font-mono font-bold text-emerald-300">{SUPABASE_PROJECT_ID}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsSchemaModalOpen(false)}
+                className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4 text-xs text-slate-300">
+              <p>
+                Your website is fully integrated with Supabase! If you haven't created the database tables yet in your Supabase dashboard, copy this SQL and run it in your{' '}
+                <a
+                  href={`https://supabase.com/dashboard/project/${SUPABASE_PROJECT_ID}/sql/new`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-amber-400 underline hover:text-amber-300"
+                >
+                  Supabase SQL Editor
+                </a>:
+              </p>
+
+              <div className="relative rounded-xl border border-slate-800 bg-slate-950 p-4 font-mono text-[11px] text-emerald-300 overflow-x-auto max-h-72">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(SUPABASE_SCHEMA_SQL);
+                    setCopiedSql(true);
+                    setTimeout(() => setCopiedSql(false), 2500);
+                  }}
+                  className="absolute top-2 right-2 flex items-center gap-1.5 rounded-lg bg-emerald-600/30 border border-emerald-500/40 px-2.5 py-1 text-[10px] font-bold text-emerald-200 hover:bg-emerald-600/50 transition-all cursor-pointer"
+                >
+                  {copiedSql ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  <span>{copiedSql ? 'Copied!' : 'Copy SQL'}</span>
+                </button>
+                <pre>{SUPABASE_SCHEMA_SQL}</pre>
+              </div>
+
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-3 space-y-1">
+                <span className="font-bold text-emerald-400 block">Tables Included:</span>
+                <ul className="list-disc list-inside space-y-0.5 text-slate-400">
+                  <li><code className="text-emerald-300">public.opportunities</code>: Fellowships, competitions, grants & student opportunities.</li>
+                  <li><code className="text-emerald-300">public.contact_messages</code>: User inquiries, collaboration requests & feedback.</li>
+                  <li><code className="text-emerald-300">public.newsletter_subscribers</code>: Email subscriptions.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3 border-t border-slate-800 pt-4">
+              <a
+                href={`https://supabase.com/dashboard/project/${SUPABASE_PROJECT_ID}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:border-slate-600"
+              >
+                <span>Open Supabase Dashboard</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              <button
+                onClick={() => setIsSchemaModalOpen(false)}
+                className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-400 shadow-md cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
