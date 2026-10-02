@@ -35,11 +35,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
   return (
     <div className="relative w-full overflow-hidden flex flex-col items-center">
-      {/* Subtle Aurora Ambient Veil */}
+      {/* Subtle Ambient Veil */}
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute -top-20 left-1/4 h-[350px] w-[500px] rounded-full bg-emerald-400/15 blur-[100px]" />
-        <div className="absolute -top-20 right-1/4 h-[350px] w-[500px] rounded-full bg-amber-400/15 blur-[100px]" />
-        <div className="absolute inset-0 bg-ornament-pattern opacity-40 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/30 pointer-events-none" />
       </div>
 
       {/* Main Hero Banner */}

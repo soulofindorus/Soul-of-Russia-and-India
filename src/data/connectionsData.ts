@@ -10,7 +10,7 @@ export const culturalConnectionsData: CulturalConnection[] = [
     russianSide: {
       name: 'Maslenitsa (Масленица)',
       subtitle: 'The Sun-Feast & Farewell to Winter',
-      image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80',
+      image: '/cultural_images/maslenitsa_fest.jpg',
       description: 'An ancient Slavic holiday celebrating the imminent arrival of spring. Golden round blini (crepes) are baked tirelessly to symbolize the warmth, roundness, and life-giving power of the sun.',
       culturalDetails: [
         'Round, hot, buttery blini as edible solar talismans.',
@@ -23,7 +23,7 @@ export const culturalConnectionsData: CulturalConnection[] = [
     indianSide: {
       name: 'Holi (होली)',
       subtitle: 'The Festival of Colors & Spring Renewal',
-      image: 'https://images.unsplash.com/photo-1561359313-0639aad49ca6?auto=format&fit=crop&w=800&q=80',
+      image: '/cultural_images/holi_fest.jpg',
       description: 'Celebrated on the Phalguna full moon, marking the triumph of spring over winter and good over evil through vivid natural pigments, songs, and sweet delicacies like Gujiya.',
       culturalDetails: [
         'Holika Dahan: lighting sacred community bonfires the night before to purge evil.',
@@ -86,7 +86,7 @@ export const culturalConnectionsData: CulturalConnection[] = [
     russianSide: {
       name: 'Bread and Salt (Хлеб да соль)',
       subtitle: 'The Guest Is Under God’s Protection',
-      image: 'https://images.unsplash.com/photo-1544717302-de2939b7ef71?auto=format&fit=crop&w=800&q=80',
+      image: '/cultural_images/russian_hospitality.jpg',
       description: 'Welcoming a guest into a Russian home with a round loaf of freshly baked Karavay bread and a cellar of pure salt on an embroidered rushnik towel.',
       culturalDetails: [
         'Refusing hospitality is considered a grave sorrow; the host puts their best preserves on the table.',
@@ -99,7 +99,7 @@ export const culturalConnectionsData: CulturalConnection[] = [
     indianSide: {
       name: 'Atithi Devo Bhava (अतिथि देवो भव)',
       subtitle: 'The Guest Is an Embodiment of the Divine',
-      image: 'https://images.unsplash.com/photo-1582738411706-bfc8e691d1c2?auto=format&fit=crop&w=800&q=80',
+      image: '/cultural_images/indian_hospitality.jpg',
       description: 'An ancient Vedic injunction from the Taittiriya Upanishad commanding that an unannounced guest be treated with the unconditional reverence shown to God.',
       culturalDetails: [
         'Immediate offering of cool water and fresh cardamom-spiced chai upon crossing the threshold.',
@@ -124,7 +124,7 @@ export const culturalConnectionsData: CulturalConnection[] = [
     russianSide: {
       name: 'The Russian Dacha (Дача)',
       subtitle: 'Sanctuary of Soil, Taiga & Reflection',
-      image: 'https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?auto=format&fit=crop&w=800&q=80',
+      image: '/cultural_images/russian_dacha.jpg',
       description: 'A modest wooden country cabin where urban Russians escape city noise every summer to pick wild berries and mushrooms, tend currant bushes, chop firewood, and take Russian banya steam baths.',
       culturalDetails: [
         'Growing cucumbers, dill, and strawberries with profound earthy love.',
@@ -137,7 +137,7 @@ export const culturalConnectionsData: CulturalConnection[] = [
     indianSide: {
       name: 'The Ancestral Gaon (गांव / पैतृक घर)',
       subtitle: 'The Soul of India Resides in its Villages',
-      image: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80',
+      image: '/cultural_images/indian_gaon.jpg',
       description: 'As Mahatma Gandhi famously observed, "The true soul of India lives in its villages." Returning to one’s ancestral homestead means reconnecting with fertile earth, cattle, banyan trees, and collective memory.',
       culturalDetails: [
         'Resting on charpoy cots under star-filled village skies.',
