@@ -10,6 +10,8 @@ interface NavbarProps {
   activeSection: string;
   onNavigate: (section: string) => void;
   onOpenSearch: () => void;
+  isAdmin?: boolean;
+  onOpenAdmin?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -18,6 +20,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeSection,
   onNavigate,
   onOpenSearch,
+  isAdmin = false,
+  onOpenAdmin,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const t = translations[currentLang];
@@ -94,7 +98,22 @@ export const Navbar: React.FC<NavbarProps> = ({
         </nav>
 
         {/* Right side: Search & Language Switcher */}
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Admin Indicator */}
+          {isAdmin && onOpenAdmin && (
+            <button
+              onClick={onOpenAdmin}
+              className="flex items-center gap-1.5 rounded-full border border-emerald-500/50 bg-emerald-50/90 px-2.5 py-1 text-[11px] font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 transition-colors cursor-pointer"
+              title="Admin Session Active (Ritik) - Click to manage"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+              </span>
+              <span className="hidden sm:inline">Admin: Ritik</span>
+            </button>
+          )}
+
           {/* Global Search Button */}
           <button
             onClick={onOpenSearch}

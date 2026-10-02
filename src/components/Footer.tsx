@@ -2,15 +2,23 @@ import React, { useState } from 'react';
 import { Language } from '../types';
 import { translations } from '../i18n/translations';
 import { subscribeNewsletter } from '../lib/supabase';
-import { Compass, Sparkles, Send, Youtube, Instagram, Heart, CheckCircle2, Mail } from 'lucide-react';
+import { Compass, Sparkles, Send, Youtube, Instagram, Heart, CheckCircle2, Mail, ShieldCheck } from 'lucide-react';
 
 interface FooterProps {
   currentLang: Language;
   onLanguageChange: (lang: Language) => void;
   onNavigate: (section: string) => void;
+  isAdmin?: boolean;
+  onOpenAdmin?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ currentLang, onLanguageChange, onNavigate }) => {
+export const Footer: React.FC<FooterProps> = ({
+  currentLang,
+  onLanguageChange,
+  onNavigate,
+  isAdmin = false,
+  onOpenAdmin,
+}) => {
   const t = translations[currentLang];
   const [newsEmail, setNewsEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
@@ -201,7 +209,7 @@ export const Footer: React.FC<FooterProps> = ({ currentLang, onLanguageChange, o
           </div>
         </div>
 
-        {/* Newsletter Subscription Row (Connected to Supabase) */}
+        {/* Newsletter Subscription Row */}
         <div className="mt-12 rounded-2xl border border-amber-500/20 bg-slate-900/50 p-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-1 text-center md:text-left">
             <h4 className="font-cinzel text-base font-bold text-white flex items-center justify-center md:justify-start gap-2">
@@ -239,14 +247,30 @@ export const Footer: React.FC<FooterProps> = ({ currentLang, onLanguageChange, o
           )}
         </div>
 
-        {/* Bottom copyright */}
-        <div className="mt-12 flex flex-col items-center justify-between border-t border-slate-800/80 pt-8 sm:flex-row text-xs text-slate-500">
+        {/* Bottom copyright & Admin Access */}
+        <div className="mt-12 flex flex-col items-center justify-between border-t border-slate-800/80 pt-8 sm:flex-row text-xs text-slate-500 gap-3">
           <p>© 2026 Soul of Russia and India. {t.footer.rights}</p>
-          <p className="mt-2 sm:mt-0 flex items-center gap-1.5 text-slate-400">
-            <span>Built with respect for human culture</span>
-            <Heart className="h-3 w-3 text-red-500 fill-red-500" />
-            <span>by Sarika Kumari & Ritik Kumar Singh</span>
-          </p>
+          <div className="flex flex-wrap items-center gap-3 sm:gap-5">
+            <p className="flex items-center gap-1.5 text-slate-400">
+              <span>Built with respect for human culture</span>
+              <Heart className="h-3 w-3 text-red-500 fill-red-500" />
+              <span>by Sarika Kumari & Ritik Kumar Singh</span>
+            </p>
+            {onOpenAdmin && (
+              <button
+                onClick={onOpenAdmin}
+                className={`flex items-center gap-1.5 py-1 px-2.5 rounded-lg border transition-all cursor-pointer text-[11px] ${
+                  isAdmin
+                    ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-300 font-semibold'
+                    : 'border-slate-800 hover:border-amber-500/30 bg-slate-900/60 text-slate-500 hover:text-amber-400'
+                }`}
+                title="Administrator Management Portal"
+              >
+                <ShieldCheck className={`h-3.5 w-3.5 ${isAdmin ? 'text-emerald-400' : 'text-amber-500/60'}`} />
+                <span>{isAdmin ? 'Admin (Ritik): Active' : 'Admin Portal'}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </footer>

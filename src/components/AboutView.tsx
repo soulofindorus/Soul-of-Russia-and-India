@@ -275,7 +275,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
         </div>
       </div>
 
-      {/* Collaboration & Contact Form (Backed by Supabase) */}
+      {/* Collaboration & Contact Form */}
       <div className="rounded-3xl border border-amber-500/25 bg-[#091120] p-8 sm:p-12 shadow-2xl space-y-6">
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-bold text-amber-300 uppercase tracking-wider mb-2">
@@ -286,7 +286,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
             Send an Inquiry or Collaboration Proposal
           </h3>
           <p className="mt-1 text-xs sm:text-sm text-slate-400">
-            Messages are stored securely in the Supabase backend database for project coordinators to review.
+            Messages are transmitted directly to project coordinators for review.
           </p>
         </div>
 
@@ -296,10 +296,10 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <h4 className="font-cinzel text-lg font-bold text-emerald-200">
-              Message Delivered to Backend!
+              Message Delivered Successfully!
             </h4>
             <p className="text-xs text-slate-300">
-              Thank you for reaching out. Your message has been recorded into Supabase and our project team will review it shortly.
+              Thank you for reaching out. Your message has been received and our project team will review it shortly.
             </p>
           </div>
         ) : (
@@ -352,17 +352,14 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
               />
             </div>
 
-            <div className="flex items-center justify-between pt-2">
-              <span className="text-[11px] text-slate-500">
-                🔒 Connected to Supabase Project: <span className="font-mono text-emerald-400">dogqlfykkstebvpipplk</span>
-              </span>
+            <div className="flex items-center justify-end pt-2">
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-6 py-2.5 text-xs font-bold text-slate-950 hover:from-amber-500 hover:to-amber-400 shadow-md transition-all cursor-pointer disabled:opacity-50"
               >
                 <Send className="h-3.5 w-3.5" />
-                <span>{isSubmitting ? 'Sending to Supabase...' : 'Send Message'}</span>
+                <span>{isSubmitting ? 'Sending...' : 'Send Message'}</span>
               </button>
             </div>
           </form>

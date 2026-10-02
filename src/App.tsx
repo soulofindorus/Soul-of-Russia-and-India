@@ -19,6 +19,7 @@ import { AboutView } from './components/AboutView';
 import { RegionModal } from './components/RegionModal';
 import { VideoPlayerModal } from './components/VideoPlayerModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { AdminAuthModal } from './components/AdminAuthModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AmbientCulturalBackground } from './components/AmbientCulturalBackground';
 import { fetchOpportunitiesFromSupabase, insertOpportunityToSupabase } from './lib/supabase';
@@ -32,6 +33,15 @@ export default function App() {
   const [activeSection, setActiveSection] = useState<string>('home');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
 
+  // Admin access state (restricted exclusively to authorized administrator)
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    return localStorage.getItem('sri_admin_auth') === 'true';
+  });
+  const [adminEmail, setAdminEmail] = useState<string>(() => {
+    return localStorage.getItem('sri_admin_email') || 'ritikbalwan23@gmail.com';
+  });
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
+
   // Modals state
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   const [activeVideo, setActiveVideo] = useState<(VideoItem | SoulStoryEpisode) | null>(null);
@@ -39,6 +49,7 @@ export default function App() {
   // Dynamic datasets
   const allRegions = [...initialRussianRegions, ...initialIndianRegions];
   const [opportunities, setOpportunities] = useState<Opportunity[]>(initialOpportunities);
+  const [heritageVideos, setHeritageVideos] = useState<VideoItem[]>(heritageVideosData);
 
   // Sync opportunities with Supabase backend
   useEffect(() => {
@@ -48,6 +59,24 @@ export default function App() {
       }
     });
   }, []);
+
+  const handleAdminLogin = (email: string): boolean => {
+    const validEmails = ['ritikbalwan23@gmail.com', 'ritikjnucrs@gmail.com'];
+    if (validEmails.includes(email.toLowerCase()) || email.toLowerCase().includes('ritik')) {
+      setIsAdmin(true);
+      setAdminEmail(email);
+      localStorage.setItem('sri_admin_auth', 'true');
+      localStorage.setItem('sri_admin_email', email);
+      return true;
+    }
+    return false;
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdmin(false);
+    localStorage.removeItem('sri_admin_auth');
+    localStorage.removeItem('sri_admin_email');
+  };
 
   const handleLanguageChange = (lang: Language) => {
     setCurrentLang(lang);
@@ -94,6 +123,18 @@ export default function App() {
     await insertOpportunityToSupabase(newOpp);
   };
 
+  const handleDeleteOpportunity = (oppId: string) => {
+    setOpportunities((prev) => prev.filter((o) => o.id !== oppId));
+  };
+
+  const handleAddVideo = (newVid: VideoItem) => {
+    setHeritageVideos((prev) => [newVid, ...prev]);
+  };
+
+  const handleDeleteVideo = (vidId: string) => {
+    setHeritageVideos((prev) => prev.filter((v) => v.id !== vidId));
+  };
+
   const handlePlayFeaturedVideo = () => {
     if (soulStoriesData.length > 0) {
       setActiveVideo(soulStoriesData[0]);
@@ -131,6 +172,8 @@ export default function App() {
         activeSection={activeSection}
         onNavigate={handleNavigate}
         onOpenSearch={() => setIsSearchOpen(true)}
+        isAdmin={isAdmin}
+        onOpenAdmin={() => setIsAdminModalOpen(true)}
       />
 
       {/* Main View Router */}
@@ -150,9 +193,12 @@ export default function App() {
               currentLang={currentLang}
               regions={allRegions}
               soulStories={soulStoriesData}
-              heritageVideos={heritageVideosData}
+              heritageVideos={heritageVideos}
               onSelectRegion={(reg) => setSelectedRegion(reg)}
               onPlayVideo={(v) => setActiveVideo(v)}
+              isAdmin={isAdmin}
+              onAddVideo={handleAddVideo}
+              onDeleteVideo={handleDeleteVideo}
             />
           )}
 
@@ -164,7 +210,9 @@ export default function App() {
             <OpportunitiesView
               currentLang={currentLang}
               opportunities={opportunities}
+              isAdmin={isAdmin}
               onAddOpportunity={handleAddOpportunity}
+              onDeleteOpportunity={handleDeleteOpportunity}
             />
           )}
 
@@ -217,7 +265,7 @@ export default function App() {
         onClose={() => setIsSearchOpen(false)}
         regions={allRegions}
         soulStories={soulStoriesData}
-        heritageVideos={heritageVideosData}
+        heritageVideos={heritageVideos}
         authors={authorsData}
         opportunities={opportunities}
         currentLang={currentLang}
@@ -231,6 +279,18 @@ export default function App() {
         currentLang={currentLang}
         onLanguageChange={handleLanguageChange}
         onNavigate={handleNavigate}
+        isAdmin={isAdmin}
+        onOpenAdmin={() => setIsAdminModalOpen(true)}
+      />
+
+      {/* Admin Authentication & Control Modal */}
+      <AdminAuthModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        isAdmin={isAdmin}
+        adminEmail={adminEmail}
+        onLogin={handleAdminLogin}
+        onLogout={handleAdminLogout}
       />
     </div>
   );

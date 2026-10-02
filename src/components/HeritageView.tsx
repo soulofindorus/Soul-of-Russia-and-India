@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Region, VideoItem, SoulStoryEpisode, Language, VideoCategory } from '../types';
 import { translations } from '../i18n/translations';
 import { InteractiveMap } from './InteractiveMap';
-import { Film, Play, Compass, Filter, Sparkles, Clock, Globe, Landmark, MapPin } from 'lucide-react';
+import { Film, Play, Compass, Filter, Sparkles, Clock, Globe, Landmark, MapPin, PlusCircle, Trash2, X, ShieldCheck } from 'lucide-react';
 
 interface HeritageViewProps {
   currentLang: Language;
@@ -11,6 +11,9 @@ interface HeritageViewProps {
   heritageVideos: VideoItem[];
   onSelectRegion: (region: Region) => void;
   onPlayVideo: (item: VideoItem | SoulStoryEpisode) => void;
+  isAdmin?: boolean;
+  onAddVideo?: (vid: VideoItem) => void;
+  onDeleteVideo?: (vidId: string) => void;
 }
 
 export const HeritageView: React.FC<HeritageViewProps> = ({
@@ -20,11 +23,57 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
   heritageVideos,
   onSelectRegion,
   onPlayVideo,
+  isAdmin = false,
+  onAddVideo,
+  onDeleteVideo,
 }) => {
   const t = translations[currentLang];
   const [activeMapCountry, setActiveMapCountry] = useState<'Russia' | 'India'>('Russia');
   const [videoCategoryFilter, setVideoCategoryFilter] = useState<string>('All');
   const [videoCountryFilter, setVideoCountryFilter] = useState<string>('All');
+
+  // Admin Add Video Modal State
+  const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newTitleRu, setNewTitleRu] = useState('');
+  const [newTitleHi, setNewTitleHi] = useState('');
+  const [newCountry, setNewCountry] = useState<'Russia' | 'India' | 'Both'>('Russia');
+  const [newRegion, setNewRegion] = useState('');
+  const [newCategory, setNewCategory] = useState<VideoCategory>('Archaeology');
+  const [newUrl, setNewUrl] = useState('');
+  const [newThumb, setNewThumb] = useState('');
+  const [newDuration, setNewDuration] = useState('15:00');
+  const [newDesc, setNewDesc] = useState('');
+
+  const handleCreateVideo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !onAddVideo) return;
+
+    const createdVideo: VideoItem = {
+      id: `vid-custom-${Date.now()}`,
+      title: newTitle.trim(),
+      titleRu: newTitleRu.trim() || newTitle.trim(),
+      titleHi: newTitleHi.trim() || newTitle.trim(),
+      country: newCountry,
+      region: newRegion.trim() || (newCountry === 'Russia' ? 'Russia' : 'India'),
+      category: newCategory,
+      videoUrl: newUrl.trim() || 'https://www.youtube.com/embed/oXSEBaTBZpA',
+      thumbnail: newThumb.trim() || '/cultural_images/novgorod_kremlin.jpg',
+      duration: newDuration.trim() || '15:00',
+      shortDescription: newDesc.trim() || 'Documentary exploring bilateral cultural heritage.',
+      date: new Date().toISOString().split('T')[0],
+    };
+
+    onAddVideo(createdVideo);
+    setIsAddVideoModalOpen(false);
+    setNewTitle('');
+    setNewTitleRu('');
+    setNewTitleHi('');
+    setNewRegion('');
+    setNewUrl('');
+    setNewThumb('');
+    setNewDesc('');
+  };
 
   const categories: VideoCategory[] = [
     'Archaeology',
@@ -287,6 +336,17 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
                 </option>
               ))}
             </select>
+
+            {/* Admin Add Video Trigger */}
+            {isAdmin && (
+              <button
+                onClick={() => setIsAddVideoModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 px-3 py-1.5 text-xs font-bold shadow transition-all cursor-pointer"
+              >
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span>Admin: Add Video</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -344,12 +404,28 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
 
                   <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
                     <span className="text-slate-500 text-[11px]">Category: {vid.category}</span>
-                    <button
-                      onClick={() => onPlayVideo(vid)}
-                      className="font-semibold text-amber-400 hover:text-amber-300"
-                    >
-                      Play Video →
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {isAdmin && onDeleteVideo && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Delete video "${title}"?`)) {
+                              onDeleteVideo(vid.id);
+                            }
+                          }}
+                          className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-950/60 border border-red-500/30 transition-colors cursor-pointer"
+                          title="Admin: Remove Video"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onPlayVideo(vid)}
+                        className="font-semibold text-amber-400 hover:text-amber-300"
+                      >
+                        Play Video →
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -357,6 +433,167 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
           })}
         </div>
       </div>
+
+      {/* Admin Add Video Modal */}
+      {isAdmin && isAddVideoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-fade-in">
+          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-amber-500/30 bg-[#0a1220] p-6 shadow-2xl text-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400">
+                  <Film className="h-4 w-4" />
+                </div>
+                <h3 className="font-cinzel text-lg font-bold text-white">
+                  Admin: Add New Heritage Video
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsAddVideoModalOpen(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateVideo} className="mt-4 space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Video Title (English) *</label>
+                <input
+                  type="text"
+                  required
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="e.g. Masterpieces of the Hermitage"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Title (Russian)</label>
+                  <input
+                    type="text"
+                    value={newTitleRu}
+                    onChange={(e) => setNewTitleRu(e.target.value)}
+                    placeholder="Шедевры Эрмитажа"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Title (Hindi)</label>
+                  <input
+                    type="text"
+                    value={newTitleHi}
+                    onChange={(e) => setNewTitleHi(e.target.value)}
+                    placeholder="हर्मिटेज के उत्कृष्ट कला कार्य"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Country</label>
+                  <select
+                    value={newCountry}
+                    onChange={(e) => setNewCountry(e.target.value as any)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs text-white focus:border-amber-400 focus:outline-none"
+                  >
+                    <option value="Russia">Russia</option>
+                    <option value="India">India</option>
+                    <option value="Both">Both</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Region</label>
+                  <input
+                    type="text"
+                    value={newRegion}
+                    onChange={(e) => setNewRegion(e.target.value)}
+                    placeholder="e.g. Saint Petersburg"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Category</label>
+                  <select
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value as any)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs text-white focus:border-amber-400 focus:outline-none"
+                  >
+                    {categories.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">YouTube Embed URL *</label>
+                <input
+                  type="url"
+                  required
+                  value={newUrl}
+                  onChange={(e) => setNewUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/embed/VIDEO_ID"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Thumbnail URL</label>
+                  <input
+                    type="text"
+                    value={newThumb}
+                    onChange={(e) => setNewThumb(e.target.value)}
+                    placeholder="/cultural_images/novgorod_kremlin.jpg"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Duration (MM:SS)</label>
+                  <input
+                    type="text"
+                    value={newDuration}
+                    onChange={(e) => setNewDuration(e.target.value)}
+                    placeholder="18:30"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Short Description *</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={newDesc}
+                  onChange={(e) => setNewDesc(e.target.value)}
+                  placeholder="Brief synopsis of the documentary film or lecture..."
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddVideoModalOpen(false)}
+                  className="rounded-xl px-4 py-2 text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-amber-500 px-5 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 shadow-md cursor-pointer"
+                >
+                  Add Video to Archive
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
