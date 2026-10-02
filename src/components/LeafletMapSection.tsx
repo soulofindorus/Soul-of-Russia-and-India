@@ -317,20 +317,20 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
       {/* Header with Artistic Accent */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200/90 pb-6">
         <div className="space-y-3 max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-white/90 px-3.5 py-1 text-xs font-bold text-amber-800 uppercase tracking-wider shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-white/75 px-3.5 py-1 text-xs font-bold text-amber-800 uppercase tracking-wider shadow-sm backdrop-blur-md">
             <Compass className="h-3.5 w-3.5 text-amber-600" />
             <span>Interactive Cartography • Интерактивная Карта • इंटरेक्टिव मानचित्र</span>
           </div>
           <h2 className="font-cinzel text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-wide">
             Eurasian Civilizational Landscape
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 font-serif-culture leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-700 font-serif-culture leading-relaxed">
             Directly navigate and explore the historical cradles, archaeological sanctuaries, and living traditions of both nations. Click any pin on the map to open the full regional dossier.
           </p>
         </div>
 
         {/* View Focus Switcher */}
-        <div className="flex flex-wrap items-center justify-center gap-1.5 bg-white/95 p-1.5 rounded-2xl border border-slate-200/90 shadow-md w-full sm:w-auto">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 bg-white/75 backdrop-blur-md p-1.5 rounded-2xl border border-white/80 shadow-md w-full sm:w-auto">
           <button
             onClick={() => handleFocusChange('both')}
             className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-1 sm:flex-none ${

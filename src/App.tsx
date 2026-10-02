@@ -120,7 +120,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#eef4f9] text-slate-800 selection:bg-amber-500 selection:text-white font-sans flex flex-col items-center">
+    <div className="relative min-h-screen w-full max-w-full overflow-x-hidden text-slate-800 selection:bg-amber-500 selection:text-white font-sans flex flex-col items-center">
       {/* Living Ambient Cultural Atmosphere (Russia ⇄ India) */}
       <AmbientCulturalBackground />
 
@@ -134,7 +134,7 @@ export default function App() {
       />
 
       {/* Main View Router */}
-      <main className="relative w-full max-w-full overflow-x-hidden flex-1 flex flex-col items-center">
+      <main className="relative z-10 w-full max-w-full overflow-x-hidden flex-1 flex flex-col items-center">
         <ErrorBoundary key={activeSection}>
           {activeSection === 'home' && (
             <HeroSection

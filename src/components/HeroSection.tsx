@@ -43,7 +43,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       {/* Main Hero Banner */}
       <div className="mx-auto w-full max-w-7xl px-3 pt-12 pb-16 sm:px-6 lg:px-8 text-center space-y-6 sm:space-y-8 flex flex-col items-center">
         {/* Visual Bridge Badge */}
-        <div className="inline-flex max-w-[95vw] flex-wrap items-center justify-center gap-2 sm:gap-3 rounded-full border border-amber-500/40 bg-white/90 px-3.5 py-1.5 sm:px-5 sm:py-2 text-[11px] sm:text-xs shadow-[0_4px_20px_rgba(212,175,55,0.18)] backdrop-blur-md">
+        <div className="inline-flex max-w-[95vw] flex-wrap items-center justify-center gap-2 sm:gap-3 rounded-full border border-amber-500/40 bg-white/70 px-3.5 py-1.5 sm:px-5 sm:py-2 text-[11px] sm:text-xs shadow-[0_4px_20px_rgba(212,175,55,0.18)] backdrop-blur-md">
           <span className="flex items-center gap-1 font-bold text-blue-900">
             <span>🇷🇺</span>
             <span>Россия</span>
@@ -61,7 +61,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* Central Emblem */}
         <div className="mx-auto flex justify-center">
-          <div className="group relative flex h-24 w-24 sm:h-36 sm:w-36 items-center justify-center rounded-full border-2 border-amber-500 p-1 shadow-[0_0_35px_rgba(212,175,55,0.25)] backdrop-blur-md transition-transform duration-500 hover:scale-105 bg-white">
+          <div className="group relative flex h-24 w-24 sm:h-36 sm:w-36 items-center justify-center rounded-full border-2 border-amber-500 p-1 shadow-[0_0_35px_rgba(212,175,55,0.25)] backdrop-blur-md transition-transform duration-500 hover:scale-105 bg-white/80">
             <img
               src="/emblem.jpg"
               alt="Soul of Russia and India Emblem"
@@ -73,7 +73,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* Trilingual Main Headings */}
         <div className="space-y-3 max-w-4xl mx-auto w-full">
-          <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-wide sm:tracking-wider text-slate-900 drop-shadow-sm break-words">
+          <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-wide sm:tracking-wider text-slate-900 drop-shadow-[0_2px_12px_rgba(255,255,255,0.85)] break-words">
             {t.hero.title}
           </h1>
 
@@ -83,7 +83,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <span className="font-devanagari tracking-wide text-orange-800 font-bold">भारत और रूस की आत्मा</span>
           </div>
 
-          <p className="mx-auto max-w-2xl text-xs sm:text-base text-slate-700 leading-relaxed font-serif-culture pt-1 sm:pt-2 px-2 font-medium">
+          <p className="mx-auto max-w-2xl text-xs sm:text-base text-slate-800 leading-relaxed font-serif-culture pt-1 sm:pt-2 px-2 font-medium">
             “{t.hero.subtitle}”
           </p>
         </div>
@@ -101,7 +101,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           <button
             onClick={onPlayFeaturedVideo}
-            className="group flex items-center gap-2.5 rounded-full border border-slate-300 bg-white/90 px-8 py-3.5 text-sm font-bold text-slate-800 shadow-sm backdrop-blur-md transition-all hover:border-amber-500 hover:bg-white hover:text-amber-700 focus:outline-none cursor-pointer"
+            className="group flex items-center gap-2.5 rounded-full border border-slate-300/80 bg-white/75 px-8 py-3.5 text-sm font-bold text-slate-800 shadow-sm backdrop-blur-md transition-all hover:border-amber-500 hover:bg-white hover:text-amber-700 focus:outline-none cursor-pointer"
           >
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-slate-950">
               <Play className="h-3 w-3 fill-slate-950 ml-0.5" />
@@ -116,16 +116,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* 1. HERITAGE CARD */}
             <button
               onClick={() => onNavigate('heritage')}
-              className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white/85 p-6 shadow-md transition-all duration-300 hover:border-blue-400 hover:shadow-xl hover:-translate-y-1 focus:outline-none text-left"
+              className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/80 bg-white/60 hover:bg-white/85 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-md transition-all duration-300 hover:border-blue-400 hover:shadow-xl hover:-translate-y-1 focus:outline-none text-left"
             >
               <div className="space-y-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-700 border border-blue-200">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50/90 text-blue-700 border border-blue-200">
                   <MapPin className="h-6 w-6" />
                 </div>
                 <h3 className="font-cinzel text-lg font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
                   {t.hero.heritageCardTitle}
                 </h3>
-                <p className="text-xs text-slate-600 leading-relaxed font-serif-culture">
+                <p className="text-xs text-slate-700 leading-relaxed font-serif-culture">
                   {t.hero.heritageCardDesc}
                 </p>
               </div>
@@ -138,16 +138,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* 2. LANGUAGE CARD */}
             <button
               onClick={() => onNavigate('language')}
-              className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white/85 p-6 shadow-md transition-all duration-300 hover:border-amber-400 hover:shadow-xl hover:-translate-y-1 focus:outline-none text-left"
+              className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/80 bg-white/60 hover:bg-white/85 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-md transition-all duration-300 hover:border-amber-400 hover:shadow-xl hover:-translate-y-1 focus:outline-none text-left"
             >
               <div className="space-y-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-700 border border-amber-200">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50/90 text-amber-700 border border-amber-200">
                   <BookOpen className="h-6 w-6" />
                 </div>
                 <h3 className="font-cinzel text-lg font-bold text-slate-900 group-hover:text-amber-700 transition-colors">
                   {t.hero.languageCardTitle}
                 </h3>
-                <p className="text-xs text-slate-600 leading-relaxed font-serif-culture">
+                <p className="text-xs text-slate-700 leading-relaxed font-serif-culture">
                   {t.hero.languageCardDesc}
                 </p>
               </div>
@@ -160,16 +160,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* 3. OPPORTUNITIES CARD */}
             <button
               onClick={() => onNavigate('opportunities')}
-              className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white/85 p-6 shadow-md transition-all duration-300 hover:border-emerald-400 hover:shadow-xl hover:-translate-y-1 focus:outline-none text-left"
+              className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/80 bg-white/60 hover:bg-white/85 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-md transition-all duration-300 hover:border-emerald-400 hover:shadow-xl hover:-translate-y-1 focus:outline-none text-left"
             >
               <div className="space-y-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50/90 text-emerald-700 border border-emerald-200">
                   <GraduationCap className="h-6 w-6" />
                 </div>
                 <h3 className="font-cinzel text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
                   {t.hero.opportunitiesCardTitle}
                 </h3>
-                <p className="text-xs text-slate-600 leading-relaxed font-serif-culture">
+                <p className="text-xs text-slate-700 leading-relaxed font-serif-culture">
                   {t.hero.opportunitiesCardDesc}
                 </p>
               </div>
@@ -182,16 +182,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* 4. SOUL OF RUSSIA AND INDIA CARD */}
             <button
               onClick={() => onNavigate('about')}
-              className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white/85 p-6 shadow-md transition-all duration-300 hover:border-orange-400 hover:shadow-xl hover:-translate-y-1 focus:outline-none text-left"
+              className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/80 bg-white/60 hover:bg-white/85 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-md transition-all duration-300 hover:border-orange-400 hover:shadow-xl hover:-translate-y-1 focus:outline-none text-left"
             >
               <div className="space-y-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-orange-700 border border-orange-200">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50/90 text-orange-700 border border-orange-200">
                   <Sparkles className="h-6 w-6" />
                 </div>
                 <h3 className="font-cinzel text-lg font-bold text-slate-900 group-hover:text-orange-700 transition-colors">
                   {t.hero.storiesCardTitle}
                 </h3>
-                <p className="text-xs text-slate-600 leading-relaxed font-serif-culture">
+                <p className="text-xs text-slate-700 leading-relaxed font-serif-culture">
                   {t.hero.storiesCardDesc}
                 </p>
               </div>
@@ -214,12 +214,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Dynamic Cultural Highlights Row (Quote, Word of the Day, Cultural Bridge) */}
         <div className="pt-12 grid grid-cols-1 md:grid-cols-3 gap-6 text-left w-full">
           {/* Quote of the Day */}
-          <div className="rounded-2xl border border-slate-200/90 bg-white/85 p-6 space-y-3 shadow-md">
+          <div className="rounded-2xl border border-white/80 bg-white/60 hover:bg-white/80 p-6 space-y-3 shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-md transition-all">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700">
               <Quote className="h-4 w-4" />
               <span>Quote of the Day</span>
             </div>
-            <p className="font-serif-culture text-sm italic text-slate-700 leading-relaxed font-medium">
+            <p className="font-serif-culture text-sm italic text-slate-800 leading-relaxed font-medium">
               “The highest wisdom is based on universal love and unity. Truth is one, though the sages know it by many names.”
             </p>
             <div className="text-xs text-amber-800 font-bold">
@@ -230,7 +230,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Cultural Bridge of the Week */}
           <button
             onClick={() => onNavigate('connections')}
-            className="group rounded-2xl border border-slate-200/90 bg-white/85 p-6 space-y-3 text-left hover:border-amber-400 transition-colors shadow-md"
+            className="group rounded-2xl border border-white/80 bg-white/60 hover:bg-white/85 p-6 space-y-3 text-left hover:border-amber-400 transition-all shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-md cursor-pointer"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-orange-700">
@@ -242,7 +242,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <h4 className="font-cinzel text-base font-bold text-slate-900 group-hover:text-amber-700">
               Maslenitsa × Holi
             </h4>
-            <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+            <p className="text-xs text-slate-700 leading-relaxed line-clamp-2">
               Welcoming spring through solar round pancakes (Blini) and radiant color pigments (Gulal).
             </p>
           </button>
@@ -250,7 +250,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Word of the Day & Shared Cognate */}
           <button
             onClick={() => onNavigate('language')}
-            className="group rounded-2xl border border-slate-200/90 bg-white/85 p-6 space-y-3 text-left hover:border-blue-400 transition-colors shadow-md"
+            className="group rounded-2xl border border-white/80 bg-white/60 hover:bg-white/85 p-6 space-y-3 text-left hover:border-blue-400 transition-all shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-md cursor-pointer"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700">
@@ -264,7 +264,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <span className="text-slate-400">⇄</span>
               <span className="font-devanagari text-lg font-bold text-orange-800">अग्नि (Agni)</span>
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-700 leading-relaxed">
               Meaning: "Fire / Sacrificial Flame" — an ancient shared Indo-European root spanning thousands of years.
             </p>
           </button>
