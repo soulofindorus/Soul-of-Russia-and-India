@@ -4,7 +4,6 @@ import { translations } from '../i18n/translations';
 import { submitContactMessage } from '../lib/supabase';
 import { Compass, Sparkles, GraduationCap, Heart, Award, Mail, Globe, Users, Target, BookOpen, Send, Youtube, Instagram, CheckCircle2, MessageSquare } from 'lucide-react';
 import sarikaImg from '../assets/images/regenerated_image_1790026251186.jpg';
-import ritikImg from '../assets/images/regenerated_image_1790028450398.jpg';
 
 interface AboutViewProps {
   currentLang: Language;
@@ -53,7 +52,15 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
         <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-wide break-words">
           {t.about.title}
         </h1>
-        <p className="text-xs sm:text-base text-slate-600 leading-relaxed font-serif-culture">
+        <p
+          className="text-xs sm:text-base text-slate-600 leading-relaxed font-serif-culture"
+          style={{
+            color: '#491cb3',
+            backgroundColor: '#f5f5f5',
+            fontFamily: 'Cormorant Garamond',
+            textDecorationLine: 'none',
+          }}
+        >
           {t.about.leadText}
         </p>
       </div>
@@ -78,7 +85,10 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
               <BookOpen className="h-5 w-5 text-amber-600" />
               <span>Language & Archaeology</span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-serif-culture">
+            <p
+              className="text-xs sm:text-sm text-slate-300 leading-relaxed font-serif-culture"
+              style={{ color: '#47009c' }}
+            >
               Language is the living vessel of a people’s soul. By uniting grammar pedagogy with archaeological excavation history—from Gnezdovo’s birch bark scrolls to Nalanda’s monastic libraries—we restore deep civilizational memory.
             </p>
           </div>
@@ -88,7 +98,10 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
               <Target className="h-5 w-5" />
               <span>Youth Empowerment</span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-serif-culture">
+            <p
+              className="text-xs sm:text-sm text-slate-300 leading-relaxed font-serif-culture"
+              style={{ color: '#5b0093' }}
+            >
               True cultural understanding flourishes when young scholars, linguists, artists, and researchers collaborate directly through bilateral fellowships, Olympiads, and joint multimedia storytelling.
             </p>
           </div>
@@ -98,19 +111,19 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
         <div className="border-t border-slate-800 pt-8 grid grid-cols-1 sm:grid-cols-4 gap-4 text-center">
           <div className="rounded-xl bg-slate-900/60 p-4 border border-slate-800">
             <span className="font-cinzel text-2xl font-bold text-amber-400">100%</span>
-            <span className="block text-xs text-slate-400 mt-1">Independent Cultural Mission</span>
+            <span className="block text-xs text-slate-400 mt-1" style={{ color: '#fff200' }}>Independent Cultural Mission</span>
           </div>
           <div className="rounded-xl bg-slate-900/60 p-4 border border-slate-800">
             <span className="font-cinzel text-2xl font-bold text-blue-400">3</span>
-            <span className="block text-xs text-slate-400 mt-1">Living Languages (EN, RU, HI)</span>
+            <span className="block text-xs text-slate-400 mt-1" style={{ color: '#ffff00' }}>Living Languages (EN, RU, HI)</span>
           </div>
           <div className="rounded-xl bg-slate-900/60 p-4 border border-slate-800">
             <span className="font-cinzel text-2xl font-bold text-orange-400">500+</span>
-            <span className="block text-xs text-slate-400 mt-1">Years of Friendship & Dialogue</span>
+            <span className="block text-xs text-slate-400 mt-1" style={{ color: '#f3dd00' }}>Years of Friendship & Dialogue</span>
           </div>
           <div className="rounded-xl bg-slate-900/60 p-4 border border-slate-800">
             <span className="font-cinzel text-2xl font-bold text-emerald-400">Open</span>
-            <span className="block text-xs text-slate-400 mt-1">Youth Fellowship Portal</span>
+            <span className="block text-xs text-slate-400 mt-1" style={{ color: '#ffe401' }}>Youth Fellowship Portal</span>
           </div>
         </div>
       </div>
@@ -118,15 +131,25 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
       {/* Leadership & Project Team (Sarika Kumari & Ritik Kumar Singh) */}
       <div className="space-y-8">
         <div className="text-center space-y-2">
-          <h2 className="font-cinzel text-2xl sm:text-4xl font-bold text-white tracking-wide">
+          <h2
+            className="font-cinzel text-2xl sm:text-4xl font-bold text-white tracking-wide"
+            style={{ color: '#ff8832' }}
+          >
             {t.about.leadershipTitle}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400">
+          <p
+            className="text-xs sm:text-sm text-slate-400"
+            style={{
+              backgroundColor: '#ffffff',
+              borderColor: '#f52929',
+              color: '#0085ff',
+            }}
+          >
             Dedicated educators and cultural ambassadors bridging two ancient civilizations.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="max-w-2xl mx-auto w-full">
           {/* HEAD OF PROJECT: Sarika Kumari */}
           <div className="group rounded-3xl border border-amber-500/30 bg-gradient-to-b from-[#0c1424] to-[#070d18] p-8 shadow-2xl transition-all duration-300 hover:border-amber-400 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] flex flex-col justify-between">
             <div className="space-y-6">
@@ -218,58 +241,6 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
                   <Instagram className="h-3.5 w-3.5" />
                 </a>
               </div>
-            </div>
-          </div>
-
-          {/* MANAGER OF PROJECT: Ritik Kumar Singh */}
-          <div className="group rounded-3xl border border-blue-500/30 bg-gradient-to-b from-[#0c1424] to-[#070d18] p-8 shadow-2xl transition-all duration-300 hover:border-blue-400 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] flex flex-col justify-between">
-            <div className="space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="relative h-20 w-20 overflow-hidden rounded-2xl border-2 border-blue-400/80 shadow-lg shrink-0">
-                  <img
-                    src={ritikImg}
-                    alt="Ritik Kumar Singh"
-                    className="h-full w-full object-cover group-hover:scale-105 transition-transform"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
-                <div>
-                  <span className="rounded-full bg-blue-500/20 px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-blue-300 border border-blue-500/30">
-                    {t.about.managerTitle}
-                  </span>
-                  <h3 className="font-cinzel mt-1 text-xl font-bold text-white group-hover:text-blue-300 transition-colors">
-                    {t.about.managerName}
-                  </h3>
-                  <p className="text-xs text-blue-200/80 font-serif-culture">
-                    {t.about.managerRole}
-                  </p>
-                </div>
-              </div>
-
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-serif-culture">
-                {t.about.managerRole}
-              </p>
-
-              <div className="space-y-2 border-t border-slate-800 pt-4 text-xs text-slate-300">
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-blue-400" />
-                  <span>Organizer of student exchanges, cultural summits, and academic grants.</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-blue-400" />
-                  <span>Connecting universities and youth researchers across Russia and India.</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-              <span className="flex items-center gap-1.5 text-blue-400">
-                <Mail className="h-3.5 w-3.5" />
-                <a href="mailto:ritikjnucrs@gmail.com" className="hover:underline text-blue-400">
-                  <span>ritikjnucrs@gmail.com</span>
-                </a>
-              </span>
-              <span>Project Management & Outreach</span>
             </div>
           </div>
         </div>
