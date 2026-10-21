@@ -4,6 +4,7 @@ import { translations } from '../i18n/translations';
 import { submitContactMessage } from '../lib/supabase';
 import { Compass, Sparkles, GraduationCap, Heart, Award, Mail, Globe, Users, Target, BookOpen, Send, Youtube, Instagram, CheckCircle2, MessageSquare } from 'lucide-react';
 import sarikaImg from '../assets/images/regenerated_image_1790026251186.jpg';
+import ritikImg from '../assets/images/regenerated_image_1790028450398.jpg';
 
 interface AboutViewProps {
   currentLang: Language;
@@ -149,7 +150,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
           </p>
         </div>
 
-        <div className="max-w-2xl mx-auto w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {/* HEAD OF PROJECT: Sarika Kumari */}
           <div className="group rounded-3xl border border-amber-500/30 bg-gradient-to-b from-[#0c1424] to-[#070d18] p-8 shadow-2xl transition-all duration-300 hover:border-amber-400 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] flex flex-col justify-between">
             <div className="space-y-6">
@@ -241,6 +242,58 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
                   <Instagram className="h-3.5 w-3.5" />
                 </a>
               </div>
+            </div>
+          </div>
+
+          {/* MANAGER OF PROJECT: Ritik Kumar Singh */}
+          <div className="group rounded-3xl border border-blue-500/30 bg-gradient-to-b from-[#0c1424] to-[#070d18] p-8 shadow-2xl transition-all duration-300 hover:border-blue-400 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] flex flex-col justify-between">
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="relative h-20 w-20 overflow-hidden rounded-2xl border-2 border-blue-400/80 shadow-lg shrink-0">
+                  <img
+                    src={ritikImg}
+                    alt="Ritik Kumar Singh"
+                    className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <div>
+                  <span className="rounded-full bg-blue-500/20 px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-blue-300 border border-blue-500/30">
+                    {t.about.managerTitle}
+                  </span>
+                  <h3 className="font-cinzel mt-1 text-xl font-bold text-white group-hover:text-blue-300 transition-colors">
+                    {t.about.managerName}
+                  </h3>
+                  <p className="text-xs text-blue-200/80 font-serif-culture">
+                    {t.about.managerRole}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-serif-culture">
+                {t.about.managerRole}
+              </p>
+
+              <div className="space-y-2 border-t border-slate-800 pt-4 text-xs text-slate-300">
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-blue-400" />
+                  <span>Organizer of student exchanges, cultural summits, and academic grants.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-blue-400" />
+                  <span>Connecting universities and youth researchers across Russia and India.</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+              <span className="flex items-center gap-1.5 text-blue-400">
+                <Mail className="h-3.5 w-3.5" />
+                <a href="mailto:ritikjnucrs@gmail.com" className="hover:underline text-blue-400">
+                  <span>ritikjnucrs@gmail.com</span>
+                </a>
+              </span>
+              <span>Project Management & Outreach</span>
             </div>
           </div>
         </div>
