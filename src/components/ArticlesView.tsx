@@ -12,7 +12,6 @@ import {
   Search,
   Tag,
   Share2,
-  Check,
   X,
   PlusCircle,
   Trash2,
@@ -23,7 +22,6 @@ import {
   Image as ImageIcon,
   CheckCircle2,
 } from 'lucide-react';
-import { copyToClipboard, getDirectLinksForSection } from '../utils/routing';
 
 interface ArticlesViewProps {
   currentLang: Language;
@@ -50,16 +48,6 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeArticle, setActiveArticle] = useState<ArticleItem | null>(null);
-  const [copiedDirectLink, setCopiedDirectLink] = useState<boolean>(false);
-
-  const handleCopyDirectLink = async () => {
-    const links = getDirectLinksForSection('articles');
-    const success = await copyToClipboard(links.hashUrl);
-    if (success) {
-      setCopiedDirectLink(true);
-      setTimeout(() => setCopiedDirectLink(false), 2500);
-    }
-  };
 
   // Admin Write Article Modal State
   const [isWriteModalOpen, setIsWriteModalOpen] = useState<boolean>(false);
@@ -197,9 +185,9 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
             : 'Scholarly essays, cultural reflections, archaeological breakthroughs, and intellectual commentaries exploring the deep parallels and living dialogue between Russia and India.'}
         </p>
 
-        {/* Action Bar (Admin Write & Direct Link) */}
-        <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-          {isAdmin && (
+        {/* Admin Write Action */}
+        {isAdmin && (
+          <div className="pt-2 flex justify-center">
             <button
               onClick={() => setIsWriteModalOpen(true)}
               className="flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-600 to-amber-500 px-6 py-2.5 text-xs sm:text-sm font-bold text-slate-950 shadow-lg hover:from-amber-500 hover:to-amber-400 hover:scale-105 transition-all cursor-pointer"
@@ -207,30 +195,8 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
               <PenTool className="h-4 w-4" />
               <span>+ Write New Article (Admin)</span>
             </button>
-          )}
-
-          <button
-            onClick={handleCopyDirectLink}
-            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold shadow-sm transition-all border ${
-              copiedDirectLink
-                ? 'bg-emerald-600 text-white border-emerald-500'
-                : 'bg-white text-slate-700 border-slate-300 hover:border-amber-500 hover:text-amber-800'
-            }`}
-            title="Copy Direct Link to Scholarly Articles & Blogs"
-          >
-            {copiedDirectLink ? (
-              <>
-                <Check className="h-3.5 w-3.5 text-white" />
-                <span className="font-bold">Copied Direct Link!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="h-3.5 w-3.5 text-amber-600" />
-                <span>Share: articles.*</span>
-              </>
-            )}
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Search & Category Filter Toolbar */}

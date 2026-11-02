@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Globe, Menu, X, Search, Compass, BookOpen, GraduationCap, Users, Sparkles, MapPin, Landmark, Flame, Newspaper, Share2 } from 'lucide-react';
+import { Globe, Menu, X, Search, Compass, BookOpen, GraduationCap, Users, Sparkles, MapPin, Landmark, Flame, Newspaper } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../i18n/translations';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -10,7 +10,6 @@ interface NavbarProps {
   activeSection: string;
   onNavigate: (section: string) => void;
   onOpenSearch: () => void;
-  onOpenDirectLinks?: () => void;
   isAdmin?: boolean;
   onOpenAdmin?: () => void;
 }
@@ -21,7 +20,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeSection,
   onNavigate,
   onOpenSearch,
-  onOpenDirectLinks,
   isAdmin = false,
   onOpenAdmin,
 }) => {
@@ -118,20 +116,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Direct Links & Subdomain Hub */}
-          {onOpenDirectLinks && (
-            <button
-              onClick={onOpenDirectLinks}
-              className="flex items-center gap-1.5 rounded-full border border-amber-300/80 bg-amber-50/90 px-2 sm:px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 hover:border-amber-400 shadow-sm transition-all focus:outline-none shrink-0"
-              title="Direct Links & DNS Subdomains (Share any section)"
-            >
-              <Share2 className="h-3.5 w-3.5 text-amber-700" />
-              <span className="hidden md:inline">
-                {currentLang === 'ru' ? 'Ссылки и DNS' : currentLang === 'hi' ? 'सीधे लिंक' : 'Direct Links'}
-              </span>
-            </button>
-          )}
-
           {/* Global Search Button */}
           <button
             onClick={onOpenSearch}
@@ -185,28 +169,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             })}
           </div>
 
-          {/* Mobile Direct Links / Share Button */}
-          {onOpenDirectLinks && (
-            <button
-              onClick={() => {
-                onOpenDirectLinks();
-                setMobileMenuOpen(false);
-              }}
-              className="w-full flex items-center justify-center gap-2 rounded-lg border border-amber-400 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900 shadow-sm hover:bg-amber-100 transition-colors"
-            >
-              <Share2 className="h-4 w-4 text-amber-700" />
-              <span>
-                {currentLang === 'ru'
-                  ? 'Прямые ссылки и DNS поддомены'
-                  : currentLang === 'hi'
-                  ? 'सीधे लिंक और सबडोमेन'
-                  : 'Direct Links & DNS Subdomains Hub'}
-              </span>
-            </button>
-          )}
-
           {/* Mobile Persistent Language Selector */}
-          <div className="border-t border-slate-200 pt-3">
+          <div className="border-t border-slate-800 pt-3">
             <LanguageSwitcher
               currentLang={currentLang}
               onLanguageChange={(lang) => {

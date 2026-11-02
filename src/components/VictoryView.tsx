@@ -17,12 +17,11 @@ import {
   X,
   PlusCircle,
   Trash2,
+  Heart,
+  Flag,
   CheckCircle2,
   BookOpen,
-  Share2,
-  Check,
 } from 'lucide-react';
-import { copyToClipboard, getDirectLinksForSection } from '../utils/routing';
 
 interface VictoryViewProps {
   currentLang: Language;
@@ -57,16 +56,6 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
   const [selectedEpoch, setSelectedEpoch] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedStory, setSelectedStory] = useState<HeroicStory | null>(null);
-  const [copiedDirectLink, setCopiedDirectLink] = useState<boolean>(false);
-
-  const handleCopyDirectLink = async () => {
-    const links = getDirectLinksForSection('victory');
-    const success = await copyToClipboard(links.hashUrl);
-    if (success) {
-      setCopiedDirectLink(true);
-      setTimeout(() => setCopiedDirectLink(false), 2500);
-    }
-  };
 
   // Admin Add Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -238,7 +227,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
             </span>
           </button>
 
-            {isAdmin && (
+          {isAdmin && (
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="flex items-center gap-2 rounded-full border border-amber-500 bg-amber-500/10 px-4 py-2.5 text-xs sm:text-sm font-bold text-amber-800 hover:bg-amber-500 hover:text-slate-950 transition-all cursor-pointer shadow-sm"
@@ -247,29 +236,6 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
               <span>+ Add Heroic Chronicle (Admin)</span>
             </button>
           )}
-
-          {/* Quick Direct Link Share Button */}
-          <button
-            onClick={handleCopyDirectLink}
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold shadow-sm transition-all border ${
-              copiedDirectLink
-                ? 'bg-emerald-600 text-white border-emerald-500'
-                : 'bg-white text-slate-700 border-slate-300 hover:border-amber-500 hover:text-amber-800'
-            }`}
-            title="Copy Direct Link to Memory of Victory"
-          >
-            {copiedDirectLink ? (
-              <>
-                <Check className="h-3.5 w-3.5 text-white" />
-                <span className="font-bold">Copied Direct Link!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="h-3.5 w-3.5 text-amber-600" />
-                <span>Share: victory.*</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
 
