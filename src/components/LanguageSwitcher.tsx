@@ -155,75 +155,25 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       role="region"
       aria-label="Language selection"
     >
-      {/* Mobile Compact Single Button (Shown on small screens) */}
+      {/* Compact Elegant Dropdown Pill Button */}
       <button
         onClick={() => setDropdownOpen(!dropdownOpen)}
         type="button"
         aria-expanded={dropdownOpen}
         aria-haspopup="true"
-        title="Change Language"
-        className="flex sm:hidden items-center gap-1.5 rounded-full border border-amber-500/40 bg-white/95 px-2.5 py-1 text-xs font-semibold text-slate-800 shadow-sm focus:outline-none shrink-0"
+        title={`Current Language: ${currentOption.nativeLabel} (${currentOption.englishLabel}) - Click to change`}
+        className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-amber-500/40 bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:border-amber-500 hover:bg-amber-50/50 transition-all focus:outline-none shrink-0 cursor-pointer"
       >
-        <span className="text-xs">{currentOption.flag}</span>
-        <span className="font-serif-culture font-bold text-amber-800">{currentOption.shortLabel}</span>
+        <span className="text-sm shrink-0">{currentOption.flag}</span>
+        <span className="font-serif-culture font-bold text-slate-900 whitespace-nowrap">
+          {currentOption.nativeLabel}
+        </span>
         <ChevronDown
-          className={`h-3 w-3 text-amber-600 transition-transform duration-200 ${
+          className={`h-3.5 w-3.5 text-amber-600 transition-transform duration-200 shrink-0 ${
             dropdownOpen ? 'rotate-180' : ''
           }`}
         />
       </button>
-
-      {/* Segmented Pill Bar for Tablet/Desktop */}
-      <div
-        className="hidden sm:flex items-center rounded-full border border-amber-500/30 bg-white/95 p-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] backdrop-blur-md"
-        role="radiogroup"
-        aria-label="Interface language"
-      >
-        {LANGUAGES.map((lang) => {
-          const isSelected = lang.code === currentLang;
-
-          return (
-            <button
-              key={lang.code}
-              onClick={() => selectLanguage(lang.code)}
-              type="button"
-              role="radio"
-              aria-checked={isSelected}
-              title={`${lang.nativeLabel} (${lang.englishLabel}) - ${lang.region}`}
-              className={`relative flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-all duration-200 select-none ${
-                isSelected
-                  ? lang.themeGradient
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <span className="text-xs" aria-hidden="true">
-                {lang.flag}
-              </span>
-              <span className="font-serif-culture tracking-wide">
-                {lang.nativeLabel}
-              </span>
-            </button>
-          );
-        })}
-
-        {/* Dropdown details trigger button */}
-        <button
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          type="button"
-          aria-expanded={dropdownOpen}
-          aria-haspopup="true"
-          title="Language options & persistent preferences"
-          className={`ml-0.5 flex h-6 w-6 items-center justify-center rounded-full text-slate-500 hover:text-amber-700 hover:bg-slate-100 transition-colors focus:outline-none ${
-            dropdownOpen ? 'text-amber-700 bg-amber-50' : ''
-          }`}
-        >
-          <ChevronDown
-            className={`h-3.5 w-3.5 transition-transform duration-200 ${
-              dropdownOpen ? 'rotate-180 text-amber-600' : ''
-            }`}
-          />
-        </button>
-      </div>
 
       {/* Floating Detailed Language Switcher Menu */}
       <AnimatePresence>

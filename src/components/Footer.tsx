@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Language } from '../types';
 import { translations } from '../i18n/translations';
 import { subscribeNewsletter } from '../lib/supabase';
-import { Compass, Sparkles, Send, Youtube, Instagram, Heart, CheckCircle2, Mail, ShieldCheck } from 'lucide-react';
+import { Compass, Sparkles, Send, Youtube, Instagram, Heart, CheckCircle2, Mail, ShieldCheck, Share2, Link2 } from 'lucide-react';
 
 interface FooterProps {
   currentLang: Language;
   onLanguageChange: (lang: Language) => void;
   onNavigate: (section: string) => void;
+  onOpenDirectLinks?: () => void;
   isAdmin?: boolean;
   onOpenAdmin?: () => void;
 }
@@ -16,6 +17,7 @@ export const Footer: React.FC<FooterProps> = ({
   currentLang,
   onLanguageChange,
   onNavigate,
+  onOpenDirectLinks,
   isAdmin = false,
   onOpenAdmin,
 }) => {
@@ -137,10 +139,10 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li>
                 <button
-                  onClick={() => onNavigate('language')}
+                  onClick={() => onNavigate('archaeology')}
                   className="hover:text-amber-300 transition-colors"
                 >
-                  {t.nav.language}
+                  {t.nav.archaeology || 'Archaeology'}
                 </button>
               </li>
               <li>
@@ -161,10 +163,26 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li>
                 <button
+                  onClick={() => onNavigate('language')}
+                  className="hover:text-amber-300 transition-colors"
+                >
+                  {t.nav.language}
+                </button>
+              </li>
+              <li>
+                <button
                   onClick={() => onNavigate('opportunities')}
                   className="hover:text-amber-300 transition-colors"
                 >
                   {t.nav.opportunities}
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate('literature')}
+                  className="hover:text-amber-300 transition-colors"
+                >
+                  {t.nav.literature || 'Literature'}
                 </button>
               </li>
               <li>
@@ -177,12 +195,31 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li>
                 <button
+                  onClick={() => onNavigate('games')}
+                  className="hover:text-amber-300 transition-colors"
+                >
+                  {t.nav.games || 'Trivia & Games'}
+                </button>
+              </li>
+              <li>
+                <button
                   onClick={() => onNavigate('about')}
                   className="hover:text-amber-300 transition-colors"
                 >
                   {t.nav.about}
                 </button>
               </li>
+              {onOpenDirectLinks && (
+                <li className="pt-2">
+                  <button
+                    onClick={onOpenDirectLinks}
+                    className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 font-bold text-xs bg-amber-950/40 border border-amber-500/30 px-2.5 py-1 rounded-md transition-colors"
+                  >
+                    <Share2 className="h-3 w-3" />
+                    <span>DNS Subdomains & Links</span>
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
 

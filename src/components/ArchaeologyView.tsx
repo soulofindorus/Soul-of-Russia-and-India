@@ -21,8 +21,11 @@ import {
   ExternalLink,
   ShieldCheck,
   Eye,
-  Camera
+  Camera,
+  Share2,
+  Check,
 } from 'lucide-react';
+import { copyToClipboard, getDirectLinksForSection } from '../utils/routing';
 
 interface ArchaeologyViewProps {
   currentLang: Language;
@@ -33,6 +36,16 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang })
   const [dossierSite, setDossierSite] = useState<ArchaeologicalSite | null>(null);
   const [countryFilter, setCountryFilter] = useState<'All' | 'Russia' | 'India'>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [copiedDirectLink, setCopiedDirectLink] = useState(false);
+
+  const handleCopyDirectLink = async () => {
+    const links = getDirectLinksForSection('archaeology');
+    const success = await copyToClipboard(links.hashUrl);
+    if (success) {
+      setCopiedDirectLink(true);
+      setTimeout(() => setCopiedDirectLink(false), 2500);
+    }
+  };
   const [layerMode, setLayerMode] = useState<'satellite' | 'dark' | 'topo'>('satellite');
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -450,6 +463,27 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang })
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white/90 border border-slate-200 text-xs font-semibold text-purple-800 shadow-sm">
                 🇷🇺 Sintashta-Arkaim & Denisova Cave
               </span>
+              <button
+                onClick={handleCopyDirectLink}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border text-xs font-bold transition-all shadow-sm ${
+                  copiedDirectLink
+                    ? 'bg-emerald-600 text-white border-emerald-500'
+                    : 'bg-amber-100/90 text-amber-900 border-amber-300 hover:bg-amber-200'
+                }`}
+                title="Copy Direct Link to Archaeology Section"
+              >
+                {copiedDirectLink ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-white" />
+                    <span>Copied Direct Link!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="h-3.5 w-3.5 text-amber-700" />
+                    <span>Share: archaeology.*</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
