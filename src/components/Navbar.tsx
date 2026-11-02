@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Globe, Menu, X, Search, Compass, BookOpen, GraduationCap, Users, Sparkles, MapPin, Landmark } from 'lucide-react';
+import { Globe, Menu, X, Search, Compass, BookOpen, GraduationCap, Users, Sparkles, MapPin, Landmark, Flame, Newspaper, Share2 } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../i18n/translations';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -10,6 +10,7 @@ interface NavbarProps {
   activeSection: string;
   onNavigate: (section: string) => void;
   onOpenSearch: () => void;
+  onOpenDirectLinks?: () => void;
   isAdmin?: boolean;
   onOpenAdmin?: () => void;
 }
@@ -20,6 +21,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeSection,
   onNavigate,
   onOpenSearch,
+  onOpenDirectLinks,
   isAdmin = false,
   onOpenAdmin,
 }) => {
@@ -30,6 +32,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'home', label: t.nav.home, icon: Compass },
     { id: 'heritage', label: t.nav.heritage, icon: MapPin },
     { id: 'archaeology', label: t.nav.archaeology, icon: Landmark },
+    { id: 'victory', label: t.nav.victory || 'Память победы', icon: Flame },
+    { id: 'articles', label: t.nav.articles || 'Articles & Blogs', icon: Newspaper },
     { id: 'language', label: t.nav.language, icon: BookOpen },
     { id: 'opportunities', label: t.nav.opportunities, icon: GraduationCap },
     { id: 'connections', label: t.nav.connections, icon: Sparkles },
@@ -78,14 +82,14 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden items-center gap-1 xl:flex">
+        <nav className="hidden items-center gap-0.5 2xl:gap-1 xl:flex">
           {navItems.map((item) => {
             const isActive = activeSection === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`px-3 py-2 text-sm font-semibold transition-all rounded-md ${
+                className={`px-2 2xl:px-2.5 py-1.5 text-xs 2xl:text-sm font-semibold transition-all rounded-md whitespace-nowrap ${
                   isActive
                     ? 'text-amber-800 bg-amber-500/15 border-b-2 border-amber-600 font-bold shadow-sm'
                     : 'text-slate-700 hover:text-amber-800 hover:bg-amber-50/80'
@@ -104,13 +108,27 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenAdmin}
               className="flex items-center gap-1.5 rounded-full border border-emerald-500/50 bg-emerald-50/90 px-2.5 py-1 text-[11px] font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 transition-colors cursor-pointer"
-              title="Admin Session Active (Ritik) - Click to manage"
+              title="Admin Session Active - Click to manage"
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
               </span>
-              <span className="hidden sm:inline">Admin: Ritik</span>
+              <span className="hidden sm:inline">Admin Mode</span>
+            </button>
+          )}
+
+          {/* Direct Links & Subdomain Hub */}
+          {onOpenDirectLinks && (
+            <button
+              onClick={onOpenDirectLinks}
+              className="flex items-center gap-1.5 rounded-full border border-amber-300/80 bg-amber-50/90 px-2 sm:px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 hover:border-amber-400 shadow-sm transition-all focus:outline-none shrink-0"
+              title="Direct Links & DNS Subdomains (Share any section)"
+            >
+              <Share2 className="h-3.5 w-3.5 text-amber-700" />
+              <span className="hidden md:inline">
+                {currentLang === 'ru' ? 'Ссылки и DNS' : currentLang === 'hi' ? 'सीधे लिंक' : 'Direct Links'}
+              </span>
             </button>
           )}
 
@@ -167,8 +185,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             })}
           </div>
 
+          {/* Mobile Direct Links / Share Button */}
+          {onOpenDirectLinks && (
+            <button
+              onClick={() => {
+                onOpenDirectLinks();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 rounded-lg border border-amber-400 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900 shadow-sm hover:bg-amber-100 transition-colors"
+            >
+              <Share2 className="h-4 w-4 text-amber-700" />
+              <span>
+                {currentLang === 'ru'
+                  ? 'Прямые ссылки и DNS поддомены'
+                  : currentLang === 'hi'
+                  ? 'सीधे लिंक और सबडोमेन'
+                  : 'Direct Links & DNS Subdomains Hub'}
+              </span>
+            </button>
+          )}
+
           {/* Mobile Persistent Language Selector */}
-          <div className="border-t border-slate-800 pt-3">
+          <div className="border-t border-slate-200 pt-3">
             <LanguageSwitcher
               currentLang={currentLang}
               onLanguageChange={(lang) => {

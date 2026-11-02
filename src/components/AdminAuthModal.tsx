@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { ShieldCheck, ShieldAlert, X, Lock, Mail, LogOut, CheckCircle2, KeyRound } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, X, Lock, Mail, LogOut, CheckCircle2, KeyRound, Eye, EyeOff } from 'lucide-react';
 
 interface AdminAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   isAdmin: boolean;
-  adminEmail: string;
-  onLogin: (email: string) => boolean;
+  adminEmail?: string;
+  onLogin: (email: string, pass: string) => boolean;
   onLogout: () => void;
 }
 
@@ -14,12 +14,12 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
   isOpen,
   onClose,
   isAdmin,
-  adminEmail,
   onLogin,
   onLogout,
 }) => {
   const [emailInput, setEmailInput] = useState('');
   const [passInput, setPassInput] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -30,17 +30,20 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
     setErrorMsg('');
     setSuccessMsg('');
 
-    const cleanEmail = emailInput.trim().toLowerCase();
-    const success = onLogin(cleanEmail);
+    const cleanEmail = emailInput.trim();
+    const cleanPass = passInput.trim();
+    const success = onLogin(cleanEmail, cleanPass);
 
     if (success) {
-      setSuccessMsg('Admin access verified. You can now add and remove content.');
+      setSuccessMsg('Admin credentials verified. You now have full editing access across the site.');
       setTimeout(() => {
         setSuccessMsg('');
+        setEmailInput('');
+        setPassInput('');
         onClose();
-      }, 1200);
+      }, 900);
     } else {
-      setErrorMsg('Unauthorized email address. Only the authorized administrator (Ritik) can access admin features.');
+      setErrorMsg('Invalid email or password. Please verify your administrator credentials.');
     }
   };
 
@@ -81,18 +84,19 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                   <span>Admin Session Active</span>
                 </div>
                 <div className="text-xs text-slate-300">
-                  Signed in as: <span className="font-mono text-amber-300 font-bold">{adminEmail || 'ritikbalwan23@gmail.com'}</span>
+                  Role: <span className="font-mono text-emerald-300 font-bold">Authorized Site Administrator</span>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  You have full privileges to add/delete opportunities and videos across the site. Normal visitors will not see these controls.
+                  You have full privileges to add/delete opportunities and videos across the site. Normal visitors will not see these editing controls.
                 </p>
               </div>
 
               <div className="space-y-1.5 text-xs text-slate-400 border border-slate-800 rounded-xl p-3 bg-slate-900/50">
                 <span className="font-bold text-slate-300 block mb-1">Active Admin Privileges:</span>
-                <p>• Add & delete bilateral fellowships, grants and opportunities</p>
+                <p>• Write & publish articles with photos and videos in Articles & Blogs</p>
+                <p>• Add & delete heroic chronicles in Memory of Victory (Память победы)</p>
+                <p>• Add & delete bilateral fellowships, grants, and opportunities</p>
                 <p>• Add & delete documentary videos in the Heritage portal</p>
-                <p>• Manage live site listings directly</p>
               </div>
 
               <div className="flex items-center justify-between pt-2">
@@ -120,7 +124,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
             /* Login Form */
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               <p className="text-slate-400 leading-relaxed">
-                Add and remove actions are restricted exclusively to the site administrator. Please authenticate with your admin credentials to unlock content editing.
+                Add and delete actions are restricted exclusively to the site administrator. Please authenticate with your admin credentials to unlock content editing.
               </p>
 
               {errorMsg && (
@@ -148,7 +152,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                     required
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="ritikbalwan23@gmail.com"
+                    placeholder="Enter administrator email..."
                     className="w-full rounded-xl border border-slate-700 bg-slate-900 pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
                   />
                 </div>
@@ -156,23 +160,33 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
 
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">
-                  Admin Passkey / PIN (Optional)
+                  Administrator Password *
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
-                    type="password"
+                    type={showPass ? 'text' : 'password'}
+                    required
                     value={passInput}
                     onChange={(e) => setPassInput(e.target.value)}
-                    placeholder="Enter passkey if configured..."
-                    className="w-full rounded-xl border border-slate-700 bg-slate-900 pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                    placeholder="Enter administrator password..."
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 pl-9 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(!showPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                    title={showPass ? 'Hide password' : 'Show password'}
+                  >
+                    {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-2">
-                <span className="text-[11px] text-slate-500">
-                  Authorized Admin: Ritik
+                <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                  <Lock className="h-3 w-3 text-amber-500/70" />
+                  Protected Portal
                 </span>
                 <button
                   type="submit"

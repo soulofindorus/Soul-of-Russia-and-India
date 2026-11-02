@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Search, X, MapPin, Film, BookOpen, GraduationCap, Sparkles, Feather, ArrowRight, Landmark } from 'lucide-react';
 import { Region, VideoItem, SoulStoryEpisode, Author, Opportunity, Language } from '../types';
 import { archaeologicalSitesData } from '../data/archaeologyData';
+import { heroicStoriesData } from '../data/victoryData';
+import { initialArticlesData } from '../data/articlesData';
+import { Flame, Newspaper } from 'lucide-react';
 
 interface GlobalSearchModalProps {
   isOpen: boolean;
@@ -100,9 +103,33 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       )
     : [];
 
+  const matchedVictory = q
+    ? heroicStoriesData.filter(
+        (v) =>
+          v.title.toLowerCase().includes(q) ||
+          v.titleRu.toLowerCase().includes(q) ||
+          v.heroName.toLowerCase().includes(q) ||
+          v.heroNameRu.toLowerCase().includes(q) ||
+          v.warName.toLowerCase().includes(q) ||
+          v.warNameRu.toLowerCase().includes(q)
+      )
+    : [];
+
+  const matchedArticles = q
+    ? initialArticlesData.filter(
+        (a) =>
+          a.title.toLowerCase().includes(q) ||
+          (a.titleRu && a.titleRu.toLowerCase().includes(q)) ||
+          a.author.toLowerCase().includes(q) ||
+          a.excerpt.toLowerCase().includes(q)
+      )
+    : [];
+
   const totalResults =
     matchedRegions.length +
     matchedArchaeology.length +
+    matchedVictory.length +
+    matchedArticles.length +
     matchedVideos.length +
     matchedAuthors.length +
     matchedOpportunities.length;
@@ -288,6 +315,68 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                           <div className="text-[10px] text-amber-300/80">{author.years}</div>
                         </div>
                         <ArrowRight className="h-4 w-4 text-slate-500" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Matched Victory Chronicles */}
+              {matchedVictory.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-red-400 flex items-center gap-1.5">
+                    <Flame className="h-3.5 w-3.5 text-red-500" /> Память победы • Heroic Chronicles ({matchedVictory.length})
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {matchedVictory.map((v) => (
+                      <button
+                        key={v.id}
+                        onClick={() => {
+                          onNavigate('victory');
+                          onClose();
+                        }}
+                        className="flex items-center gap-3 rounded-xl border border-red-950/60 bg-red-950/20 p-2.5 text-left hover:border-red-500/50 hover:bg-red-950/40 transition-colors"
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-900/40 text-amber-300 font-bold border border-red-500/30 shrink-0">
+                          <Flame className="h-5 w-5 text-red-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold text-white truncate">{v.heroName}</div>
+                          <div className="text-[10px] text-amber-300/80 truncate">{v.warName} • {v.dates}</div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-slate-500 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Matched Articles */}
+              {matchedArticles.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                    <Newspaper className="h-3.5 w-3.5" /> Articles & Blogs ({matchedArticles.length})
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {matchedArticles.map((art) => (
+                      <button
+                        key={art.id}
+                        onClick={() => {
+                          onNavigate('articles');
+                          onClose();
+                        }}
+                        className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-2.5 text-left hover:border-amber-500/40 hover:bg-slate-900 transition-colors"
+                      >
+                        <img
+                          src={art.image}
+                          alt={art.title}
+                          className="h-10 w-10 rounded-lg object-cover shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold text-white truncate">{art.title}</div>
+                          <div className="text-[10px] text-slate-400">{art.author} • {art.category}</div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-slate-500 shrink-0" />
                       </button>
                     ))}
                   </div>

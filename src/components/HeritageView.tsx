@@ -2,7 +2,25 @@ import React, { useState } from 'react';
 import { Region, VideoItem, SoulStoryEpisode, Language, VideoCategory } from '../types';
 import { translations } from '../i18n/translations';
 import { InteractiveMap } from './InteractiveMap';
-import { Film, Play, Compass, Filter, Sparkles, Clock, Globe, Landmark, MapPin, PlusCircle, Trash2, X, ShieldCheck } from 'lucide-react';
+import { formatVideoEmbedUrl } from './VideoPlayerModal';
+import {
+  Film,
+  Play,
+  Compass,
+  Filter,
+  Sparkles,
+  Clock,
+  Globe,
+  Landmark,
+  MapPin,
+  PlusCircle,
+  Trash2,
+  X,
+  ShieldCheck,
+  PenTool,
+  Save,
+  CheckCircle2,
+} from 'lucide-react';
 
 interface HeritageViewProps {
   currentLang: Language;
@@ -14,6 +32,19 @@ interface HeritageViewProps {
   isAdmin?: boolean;
   onAddVideo?: (vid: VideoItem) => void;
   onDeleteVideo?: (vidId: string) => void;
+  onUpdateVideo?: (
+    videoId: string,
+    updates: {
+      videoUrl: string;
+      title?: string;
+      titleRu?: string;
+      titleHi?: string;
+      thumbnail?: string;
+      shortDescription?: string;
+      duration?: string;
+      category?: VideoCategory;
+    }
+  ) => void;
 }
 
 export const HeritageView: React.FC<HeritageViewProps> = ({
@@ -26,11 +57,53 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
   isAdmin = false,
   onAddVideo,
   onDeleteVideo,
+  onUpdateVideo,
 }) => {
   const t = translations[currentLang];
   const [activeMapCountry, setActiveMapCountry] = useState<'Russia' | 'India'>('Russia');
   const [videoCategoryFilter, setVideoCategoryFilter] = useState<string>('All');
   const [videoCountryFilter, setVideoCountryFilter] = useState<string>('All');
+
+  // Admin Edit Video State
+  const [editingVideo, setEditingVideo] = useState<(VideoItem | SoulStoryEpisode) | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editTitleRu, setEditTitleRu] = useState('');
+  const [editUrl, setEditUrl] = useState('');
+  const [editThumb, setEditThumb] = useState('');
+  const [editDuration, setEditDuration] = useState('');
+  const [editCategory, setEditCategory] = useState<VideoCategory>('Archaeology');
+  const [editDesc, setEditDesc] = useState('');
+
+  const handleOpenEditModal = (target: VideoItem | SoulStoryEpisode) => {
+    setEditingVideo(target);
+    setEditTitle(target.title);
+    setEditTitleRu(target.titleRu);
+    setEditUrl(target.videoUrl);
+    setEditThumb(target.thumbnail);
+    setEditDuration('duration' in target && target.duration ? target.duration : '15:00');
+    if ('category' in target) {
+      setEditCategory(target.category);
+      setEditDesc(target.shortDescription);
+    } else {
+      setEditDesc((target as SoulStoryEpisode).description);
+    }
+  };
+
+  const handleSaveVideoEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingVideo || !onUpdateVideo) return;
+    const formattedUrl = formatVideoEmbedUrl(editUrl);
+    onUpdateVideo(editingVideo.id, {
+      videoUrl: formattedUrl,
+      title: editTitle.trim(),
+      titleRu: editTitleRu.trim(),
+      thumbnail: editThumb.trim(),
+      duration: editDuration.trim(),
+      shortDescription: editDesc.trim(),
+      category: editCategory,
+    });
+    setEditingVideo(null);
+  };
 
   // Admin Add Video Modal State
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
@@ -252,6 +325,21 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
                       <Play className="h-5 w-5 fill-slate-950 ml-0.5" />
                     </div>
                   </button>
+
+                  {/* Admin Edit Video Button */}
+                  {isAdmin && onUpdateVideo && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEditModal(episode);
+                      }}
+                      className="absolute bottom-2.5 right-2.5 z-20 flex items-center gap-1 rounded-md bg-black/80 hover:bg-amber-500 text-slate-200 hover:text-slate-950 px-2 py-1 text-[10px] font-bold border border-amber-500/40 transition-all cursor-pointer shadow-md"
+                      title="Admin: Change this video"
+                    >
+                      <PenTool className="h-3 w-3" />
+                      <span>Edit Video</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Content */}
@@ -405,6 +493,18 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
                   <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
                     <span className="text-slate-500 text-[11px]">Category: {vid.category}</span>
                     <div className="flex items-center gap-2">
+                      {isAdmin && onUpdateVideo && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEditModal(vid);
+                          }}
+                          className="p-1 rounded text-amber-400 hover:text-amber-300 hover:bg-amber-950/60 border border-amber-500/30 transition-colors cursor-pointer"
+                          title="Admin: Change / Edit Video"
+                        >
+                          <PenTool className="h-3 w-3" />
+                        </button>
+                      )}
                       {isAdmin && onDeleteVideo && (
                         <button
                           onClick={(e) => {
@@ -588,6 +688,119 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
                   className="rounded-xl bg-amber-500 px-5 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 shadow-md cursor-pointer"
                 >
                   Add Video to Archive
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Edit Video Modal */}
+      {isAdmin && editingVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-amber-500/40 bg-[#0c1424] p-6 shadow-2xl text-slate-200 scrollbar-thin">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+              <h3 className="font-cinzel text-lg font-bold text-white flex items-center gap-2">
+                <PenTool className="h-5 w-5 text-amber-400" />
+                <span>Admin: Edit & Replace Video</span>
+              </h3>
+              <button
+                onClick={() => setEditingVideo(null)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveVideoEdit} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  Video URL (YouTube link / embed / MP4) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=... or embed URL"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white font-mono placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Accepts standard YouTube links (youtube.com/watch?v=... or youtu.be/...) — automatically converted to player embed format.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    Title (English) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    Title (Russian)
+                  </label>
+                  <input
+                    type="text"
+                    value={editTitleRu}
+                    onChange={(e) => setEditTitleRu(e.target.value)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Thumbnail URL</label>
+                  <input
+                    type="text"
+                    value={editThumb}
+                    onChange={(e) => setEditThumb(e.target.value)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Duration</label>
+                  <input
+                    type="text"
+                    value={editDuration}
+                    onChange={(e) => setEditDuration(e.target.value)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Description</label>
+                <textarea
+                  rows={3}
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingVideo(null)}
+                  className="rounded-xl px-4 py-2 text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-5 py-2 font-bold text-slate-950 shadow-md hover:from-amber-500 hover:to-amber-400 cursor-pointer"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Save Video to Website</span>
                 </button>
               </div>
             </form>

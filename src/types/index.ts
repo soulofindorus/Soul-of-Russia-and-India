@@ -242,3 +242,69 @@ export interface ArchaeologicalSite {
   indoEurasianLinkHi: string;
 }
 
+export type WarEpoch =
+  | 'kievan-rus'
+  | 'time-of-troubles'
+  | 'peasant-uprisings'
+  | 'napoleonic-1812'
+  | 'crimean-war'
+  | 'ww1'
+  | 'civil-war'
+  | 'ww2-great-patriotic'
+  | 'modern-valour';
+
+export interface HeroicStory {
+  id: string;
+  title: string;
+  titleRu: string;
+  titleHi?: string;
+  epoch: WarEpoch;
+  warName: string;
+  warNameRu: string;
+  warNameHi?: string;
+  heroName: string;
+  heroNameRu: string;
+  heroNameHi?: string;
+  roleOrRank?: string;
+  roleOrRankRu?: string;
+  dates: string;
+  location: string;
+  locationRu?: string;
+  heroAction: string;
+  heroActionRu: string;
+  heroActionHi?: string;
+  story: string;
+  storyRu: string;
+  storyHi?: string;
+  quote?: string;
+  quoteRu?: string;
+  image?: string;
+  badge?: string;
+  outcomeOrLegacy?: string;
+  outcomeOrLegacyRu?: string;
+  solidarityNote?: string;
+  solidarityNoteRu?: string;
+}
+
+export interface ArticleItem {
+  id: string;
+  title: string;
+  titleRu?: string;
+  titleHi?: string;
+  heading?: string;
+  headingRu?: string;
+  category: string;
+  categoryRu?: string;
+  author: string;
+  date: string;
+  readTime: string;
+  excerpt: string;
+  excerptRu?: string;
+  excerptHi?: string;
+  content: string;
+  contentRu?: string;
+  image: string;
+  videoUrl?: string;
+  tags: string[];
+  isFeatured?: boolean;
+}
