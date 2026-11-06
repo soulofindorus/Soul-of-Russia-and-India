@@ -209,17 +209,6 @@ export const Footer: React.FC<FooterProps> = ({
                   {t.nav.about}
                 </button>
               </li>
-              {onOpenDirectLinks && (
-                <li className="pt-2">
-                  <button
-                    onClick={onOpenDirectLinks}
-                    className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 font-bold text-xs bg-amber-950/40 border border-amber-500/30 px-2.5 py-1 rounded-md transition-colors"
-                  >
-                    <Share2 className="h-3 w-3" />
-                    <span>DNS Subdomains & Links</span>
-                  </button>
-                </li>
-              )}
             </ul>
           </div>
 

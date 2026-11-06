@@ -23,7 +23,6 @@ import {
   Image as ImageIcon,
   CheckCircle2,
 } from 'lucide-react';
-import { copyToClipboard, getDirectLinksForSection } from '../utils/routing';
 
 interface ArticlesViewProps {
   currentLang: Language;
@@ -53,11 +52,13 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
   const [copiedDirectLink, setCopiedDirectLink] = useState<boolean>(false);
 
   const handleCopyDirectLink = async () => {
-    const links = getDirectLinksForSection('articles');
-    const success = await copyToClipboard(links.hashUrl);
-    if (success) {
+    try {
+      const url = `${window.location.origin}${window.location.pathname}#articles`;
+      await navigator.clipboard.writeText(url);
       setCopiedDirectLink(true);
       setTimeout(() => setCopiedDirectLink(false), 2500);
+    } catch (e) {
+      console.warn('Clipboard write failed', e);
     }
   };
 

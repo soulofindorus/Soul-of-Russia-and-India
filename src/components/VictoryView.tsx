@@ -22,7 +22,6 @@ import {
   Share2,
   Check,
 } from 'lucide-react';
-import { copyToClipboard, getDirectLinksForSection } from '../utils/routing';
 
 interface VictoryViewProps {
   currentLang: Language;
@@ -60,11 +59,13 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
   const [copiedDirectLink, setCopiedDirectLink] = useState<boolean>(false);
 
   const handleCopyDirectLink = async () => {
-    const links = getDirectLinksForSection('victory');
-    const success = await copyToClipboard(links.hashUrl);
-    if (success) {
+    try {
+      const url = `${window.location.origin}${window.location.pathname}#victory`;
+      await navigator.clipboard.writeText(url);
       setCopiedDirectLink(true);
       setTimeout(() => setCopiedDirectLink(false), 2500);
+    } catch (e) {
+      console.warn('Clipboard write failed', e);
     }
   };
 

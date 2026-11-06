@@ -1,5 +1,20 @@
-import React, { useState } from 'react';
-import { Globe, Menu, X, Search, Compass, BookOpen, GraduationCap, Users, Sparkles, MapPin, Landmark, Flame, Newspaper, Share2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Globe,
+  Menu,
+  X,
+  Search,
+  Compass,
+  BookOpen,
+  GraduationCap,
+  Users,
+  Sparkles,
+  MapPin,
+  Landmark,
+  Flame,
+  Newspaper,
+  ChevronDown,
+} from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../i18n/translations';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -10,7 +25,6 @@ interface NavbarProps {
   activeSection: string;
   onNavigate: (section: string) => void;
   onOpenSearch: () => void;
-  onOpenDirectLinks?: () => void;
   isAdmin?: boolean;
   onOpenAdmin?: () => void;
 }
@@ -21,14 +35,27 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeSection,
   onNavigate,
   onOpenSearch,
-  onOpenDirectLinks,
   isAdmin = false,
   onOpenAdmin,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
   const t = translations[currentLang];
 
-  const navItems = [
+  // Close "More" dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Primary navigation items (always visible on desktop 1024px+)
+  const primaryNavItems = [
     { id: 'home', label: t.nav.home, icon: Compass },
     { id: 'heritage', label: t.nav.heritage, icon: MapPin },
     { id: 'archaeology', label: t.nav.archaeology, icon: Landmark },
@@ -36,32 +63,69 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'articles', label: t.nav.articles || 'Articles & Blogs', icon: Newspaper },
     { id: 'language', label: t.nav.language, icon: BookOpen },
     { id: 'opportunities', label: t.nav.opportunities, icon: GraduationCap },
-    { id: 'connections', label: t.nav.connections, icon: Sparkles },
-    { id: 'literature', label: t.nav.literature, icon: BookOpen },
-    { id: 'games', label: t.nav.games, icon: Sparkles },
-    { id: 'about', label: t.nav.about, icon: Users },
   ];
+
+  // Secondary items (shown in "More" dropdown on laptops/standard desktops, and inline on 2xl+ displays)
+  const secondaryNavItems = [
+    {
+      id: 'connections',
+      label: t.nav.connections,
+      icon: Sparkles,
+      desc: currentLang === 'ru' ? 'Мост культур и хронология' : currentLang === 'hi' ? 'सांस्कृतिक सेतु और समयरेखा' : 'Civilizational Bridge & Shared History',
+    },
+    {
+      id: 'literature',
+      label: t.nav.literature,
+      icon: BookOpen,
+      desc: currentLang === 'ru' ? 'Толстой, Ганди, Пушкин, Тагор' : currentLang === 'hi' ? 'टॉलस्टॉय, गांधी, टैगोर, पुश्किन' : 'Tolstoy, Gandhi, Pushkin & Tagore',
+    },
+    {
+      id: 'games',
+      label: t.nav.games,
+      icon: Sparkles,
+      desc: currentLang === 'ru' ? 'Культурные викторины и тесты' : currentLang === 'hi' ? 'सांस्कृतिक प्रश्नोत्तरी' : 'Cultural Quizzes & Word Puzzles',
+    },
+    {
+      id: 'about',
+      label: t.nav.about,
+      icon: Users,
+      desc: currentLang === 'ru' ? 'Команда и миссия проекта' : currentLang === 'hi' ? 'परियोजना नेतृत्व और विजन' : 'Project Leadership & Vision',
+    },
+  ];
+
+  // Full item list for mobile menu
+  const allNavItems = [...primaryNavItems, ...secondaryNavItems];
+
+  const isSecondaryActive = secondaryNavItems.some((item) => item.id === activeSection);
 
   const handleNavClick = (id: string) => {
     onNavigate(id);
     setMobileMenuOpen(false);
+    setMoreDropdownOpen(false);
   };
 
+  const moreLabel =
+    currentLang === 'ru'
+      ? 'Ещё'
+      : currentLang === 'hi'
+      ? 'अन्य'
+      : 'Explore More';
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-amber-500/20 bg-white/60 backdrop-blur-md transition-all shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-      <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
-        {/* Brand Logo */}
+    <header className="sticky top-0 z-50 w-full border-b border-amber-500/20 bg-white/80 backdrop-blur-md transition-all shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+      <div className="mx-auto flex h-16 sm:h-20 w-full max-w-[1720px] items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4">
+        {/* Brand Logo - Strictly uncrushable (shrink-0, min-w-max) */}
         <button
           onClick={() => handleNavClick('home')}
-          className="group flex items-center gap-2 sm:gap-3 text-left focus:outline-none min-w-0"
+          className="group flex items-center gap-2.5 sm:gap-3 text-left focus:outline-none shrink-0 cursor-pointer select-none"
+          title="Soul of Russia & India - Home"
         >
-          <div className="relative flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-amber-500 shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-transform group-hover:scale-105 bg-white">
+          <div className="relative flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-amber-500 shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-transform group-hover:scale-105 bg-white">
             <img
               src="/emblem.jpg"
               alt="Soul of Russia and India Emblem"
               className="h-full w-full object-cover"
               onError={(e) => {
-                // fallback if loading takes a moment
                 e.currentTarget.style.display = 'none';
               }}
             />
@@ -69,29 +133,32 @@ export const Navbar: React.FC<NavbarProps> = ({
               SRI
             </span>
           </div>
-          <div className="min-w-0">
-            <div className="font-cinzel text-xs xs:text-sm sm:text-base md:text-xl font-bold tracking-wider text-slate-900 group-hover:text-amber-700 transition-colors truncate max-w-[140px] xs:max-w-[200px] sm:max-w-none">
+
+          <div className="flex flex-col shrink-0 min-w-max">
+            <div className="font-cinzel text-xs xs:text-sm sm:text-base md:text-lg font-bold tracking-wider text-slate-900 group-hover:text-amber-700 transition-colors whitespace-nowrap leading-tight">
               SOUL OF RUSSIA & INDIA
             </div>
-            <div className="hidden sm:flex items-center gap-2 text-[11px] text-amber-800/90 font-serif-culture font-semibold">
-              <span className="text-blue-900 font-bold">Душа России и Индии</span>
-              <span className="text-amber-600">•</span>
-              <span className="font-devanagari text-orange-800 font-bold">भारत और रूस की आत्मा</span>
+            {/* Single-line bilingual subtitle (strict whitespace-nowrap, never wraps vertically) */}
+            <div className="hidden sm:flex items-center gap-1.5 text-[10px] sm:text-[11px] text-amber-800/90 font-serif-culture font-semibold whitespace-nowrap leading-tight mt-0.5">
+              <span className="text-blue-900 font-bold whitespace-nowrap">Душа России и Индии</span>
+              <span className="text-amber-600 font-bold">•</span>
+              <span className="font-devanagari text-orange-800 font-bold whitespace-nowrap">भारत और रूस की आत्मा</span>
             </div>
           </div>
         </button>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden items-center gap-0.5 2xl:gap-1 xl:flex">
-          {navItems.map((item) => {
+        <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 shrink-0 ml-2 xl:ml-4">
+          {/* Primary Nav Links */}
+          {primaryNavItems.map((item) => {
             const isActive = activeSection === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`px-2 2xl:px-2.5 py-1.5 text-xs 2xl:text-sm font-semibold transition-all rounded-md whitespace-nowrap ${
+                className={`px-2.5 py-1.5 text-xs xl:text-[13px] font-semibold transition-all rounded-lg whitespace-nowrap cursor-pointer ${
                   isActive
-                    ? 'text-amber-800 bg-amber-500/15 border-b-2 border-amber-600 font-bold shadow-sm'
+                    ? 'text-amber-900 bg-amber-500/20 border border-amber-500/40 font-bold shadow-sm'
                     : 'text-slate-700 hover:text-amber-800 hover:bg-amber-50/80'
                 }`}
               >
@@ -99,10 +166,84 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             );
           })}
+
+          {/* Secondary Links directly visible on 2xl+ (1536px+) */}
+          <div className="hidden 2xl:flex items-center gap-1.5">
+            {secondaryNavItems.map((item) => {
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  className={`px-2.5 py-1.5 text-xs xl:text-[13px] font-semibold transition-all rounded-lg whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? 'text-amber-900 bg-amber-500/20 border border-amber-500/40 font-bold shadow-sm'
+                      : 'text-slate-700 hover:text-amber-800 hover:bg-amber-50/80'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* "More ▾" Dropdown Menu on Laptops/Standard Desktops (lg to 2xl: 1024px to 1535px) */}
+          <div ref={moreRef} className="relative 2xl:hidden">
+            <button
+              onClick={() => setMoreDropdownOpen((prev) => !prev)}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs xl:text-[13px] font-semibold transition-all rounded-lg whitespace-nowrap cursor-pointer ${
+                isSecondaryActive
+                  ? 'text-amber-900 bg-amber-500/20 border border-amber-500/40 font-bold shadow-sm'
+                  : 'text-slate-700 hover:text-amber-800 hover:bg-amber-50/80'
+              }`}
+              title="More Cultural Sections"
+            >
+              <span>{moreLabel}</span>
+              <ChevronDown
+                className={`h-3.5 w-3.5 text-amber-700 transition-transform duration-200 ${
+                  moreDropdownOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {/* Floating Dropdown Card */}
+            {moreDropdownOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-amber-500/30 bg-white/95 p-2 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-1">
+                <div className="px-3 py-1.5 border-b border-amber-500/20 text-[10px] uppercase font-bold tracking-wider text-amber-800">
+                  Cultural Dimensions
+                </div>
+                {secondaryNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeSection === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNavClick(item.id)}
+                      className={`w-full flex items-start gap-3 rounded-xl p-2.5 text-left transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-amber-100/90 text-amber-900 border border-amber-500/30 font-bold'
+                          : 'hover:bg-amber-50/80 text-slate-700 hover:text-amber-900'
+                      }`}
+                    >
+                      <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-700 shrink-0">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold leading-snug">{item.label}</div>
+                        <div className="text-[10px] text-slate-500 leading-snug mt-0.5 truncate">
+                          {item.desc}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </nav>
 
-        {/* Right side: Search & Language Switcher */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+        {/* Right side: Search, Admin & Language Switcher */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto lg:ml-0">
           {/* Admin Indicator */}
           {isAdmin && onOpenAdmin && (
             <button
@@ -114,28 +255,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
               </span>
-              <span className="hidden sm:inline">Admin Mode</span>
-            </button>
-          )}
-
-          {/* Direct Links & Subdomain Hub */}
-          {onOpenDirectLinks && (
-            <button
-              onClick={onOpenDirectLinks}
-              className="flex items-center gap-1.5 rounded-full border border-amber-300/80 bg-amber-50/90 px-2 sm:px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 hover:border-amber-400 shadow-sm transition-all focus:outline-none shrink-0"
-              title="Direct Links & DNS Subdomains (Share any section)"
-            >
-              <Share2 className="h-3.5 w-3.5 text-amber-700" />
-              <span className="hidden md:inline">
-                {currentLang === 'ru' ? 'Ссылки и DNS' : currentLang === 'hi' ? 'सीधे लिंक' : 'Direct Links'}
-              </span>
+              <span className="hidden sm:inline">Admin</span>
             </button>
           )}
 
           {/* Global Search Button */}
           <button
             onClick={onOpenSearch}
-            className="flex items-center gap-1.5 rounded-full border border-slate-300 bg-white/90 p-2 sm:px-3 sm:py-1.5 text-xs text-slate-700 hover:border-amber-500 hover:text-amber-800 shadow-sm transition-colors focus:outline-none shrink-0"
+            className="flex items-center gap-1.5 rounded-full border border-slate-300 bg-white/90 p-2 sm:px-3 sm:py-1.5 text-xs text-slate-700 hover:border-amber-500 hover:text-amber-800 shadow-sm transition-colors focus:outline-none shrink-0 cursor-pointer"
             title="Global Search"
           >
             <Search className="h-3.5 w-3.5 text-amber-600" />
@@ -143,17 +270,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             <kbd className="hidden rounded bg-slate-100 border border-slate-200 px-1 py-0.5 text-[10px] text-slate-500 md:inline">⌘K</kbd>
           </button>
 
-          {/* Persistent Language Switcher: EN | Русский | हिन्दी */}
+          {/* Compact Dropdown Language Switcher */}
           <LanguageSwitcher
             currentLang={currentLang}
             onLanguageChange={onLanguageChange}
             variant="navbar"
           />
 
-          {/* Mobile Menu Toggle */}
+          {/* Mobile & Tablet Menu Toggle (shown on screens < 1024px) */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg border border-slate-300 bg-white/90 text-slate-700 hover:text-amber-700 shadow-sm xl:hidden focus:outline-none shrink-0"
+            className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg border border-slate-300 bg-white/90 text-slate-700 hover:text-amber-700 shadow-sm lg:hidden focus:outline-none shrink-0 cursor-pointer"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Menu className="h-5 w-5 sm:h-6 sm:w-6" />}
@@ -161,49 +288,29 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer (Accessible on phones and tablets) */}
       {mobileMenuOpen && (
-        <div className="border-b border-amber-500/30 bg-white/95 px-4 pt-2 pb-6 xl:hidden animate-in fade-in slide-in-from-top-4 duration-200 space-y-4 shadow-xl">
-          <div className="grid grid-cols-2 gap-2 py-2">
-            {navItems.map((item) => {
+        <div className="border-b border-amber-500/30 bg-white/95 px-4 pt-3 pb-6 lg:hidden animate-in fade-in slide-in-from-top-4 duration-200 space-y-4 shadow-xl max-h-[85vh] overflow-y-auto">
+          <div className="grid grid-cols-2 gap-2 py-1">
+            {allNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
+                  className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-amber-100/90 text-amber-900 border border-amber-500/50 shadow-sm'
-                      : 'bg-slate-100/80 text-slate-700 hover:bg-amber-50'
+                      ? 'bg-amber-100/90 text-amber-900 border border-amber-500/50 shadow-sm font-bold'
+                      : 'bg-slate-50 text-slate-700 hover:bg-amber-50/80 border border-slate-200/60'
                   }`}
                 >
-                  <Icon className="h-4 w-4 text-amber-600" />
-                  <span>{item.label}</span>
+                  <Icon className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span className="truncate">{item.label}</span>
                 </button>
               );
             })}
           </div>
-
-          {/* Mobile Direct Links / Share Button */}
-          {onOpenDirectLinks && (
-            <button
-              onClick={() => {
-                onOpenDirectLinks();
-                setMobileMenuOpen(false);
-              }}
-              className="w-full flex items-center justify-center gap-2 rounded-lg border border-amber-400 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900 shadow-sm hover:bg-amber-100 transition-colors"
-            >
-              <Share2 className="h-4 w-4 text-amber-700" />
-              <span>
-                {currentLang === 'ru'
-                  ? 'Прямые ссылки и DNS поддомены'
-                  : currentLang === 'hi'
-                  ? 'सीधे लिंक और सबडोमेन'
-                  : 'Direct Links & DNS Subdomains Hub'}
-              </span>
-            </button>
-          )}
 
           {/* Mobile Persistent Language Selector */}
           <div className="border-t border-slate-200 pt-3">
@@ -217,11 +324,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             />
           </div>
 
-          <div className="flex items-center justify-between border-t border-slate-800/80 pt-2 text-xs text-slate-400">
-            <span className="flex items-center gap-1 text-amber-400">
+          <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-[11px] text-slate-500 font-serif-culture">
+            <span className="flex items-center gap-1 text-amber-700 font-bold">
               <Globe className="h-3.5 w-3.5" /> {currentLang.toUpperCase()} Mode Active
             </span>
-            <span className="font-serif-culture text-amber-300/80">Культурный мост • सांस्कृतिक सेतु</span>
+            <span className="text-amber-800 font-medium">Культурный мост • सांस्कृतिक सेतु</span>
           </div>
         </div>
       )}

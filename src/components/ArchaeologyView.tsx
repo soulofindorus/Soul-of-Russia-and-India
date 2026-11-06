@@ -25,7 +25,6 @@ import {
   Share2,
   Check,
 } from 'lucide-react';
-import { copyToClipboard, getDirectLinksForSection } from '../utils/routing';
 
 interface ArchaeologyViewProps {
   currentLang: Language;
@@ -39,11 +38,13 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang })
   const [copiedDirectLink, setCopiedDirectLink] = useState(false);
 
   const handleCopyDirectLink = async () => {
-    const links = getDirectLinksForSection('archaeology');
-    const success = await copyToClipboard(links.hashUrl);
-    if (success) {
+    try {
+      const url = `${window.location.origin}${window.location.pathname}#archaeology`;
+      await navigator.clipboard.writeText(url);
       setCopiedDirectLink(true);
       setTimeout(() => setCopiedDirectLink(false), 2500);
+    } catch (e) {
+      console.warn('Clipboard write failed', e);
     }
   };
   const [layerMode, setLayerMode] = useState<'satellite' | 'dark' | 'topo'>('satellite');
