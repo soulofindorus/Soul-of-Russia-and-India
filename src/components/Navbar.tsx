@@ -113,7 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-amber-500/20 bg-white/80 backdrop-blur-md transition-all shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-      <div className="mx-auto flex h-16 sm:h-20 w-full max-w-[1720px] items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4">
+      <div className="mx-auto flex h-16 sm:h-20 w-full max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4">
         {/* Brand Logo - Strictly uncrushable (shrink-0, min-w-max) */}
         <button
           onClick={() => handleNavClick('home')}
@@ -167,28 +167,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             );
           })}
 
-          {/* Secondary Links directly visible on 2xl+ (1536px+) */}
-          <div className="hidden 2xl:flex items-center gap-1.5">
-            {secondaryNavItems.map((item) => {
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.id)}
-                  className={`px-2.5 py-1.5 text-xs xl:text-[13px] font-semibold transition-all rounded-lg whitespace-nowrap cursor-pointer ${
-                    isActive
-                      ? 'text-amber-900 bg-amber-500/20 border border-amber-500/40 font-bold shadow-sm'
-                      : 'text-slate-700 hover:text-amber-800 hover:bg-amber-50/80'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* "More ▾" Dropdown Menu on Laptops/Standard Desktops (lg to 2xl: 1024px to 1535px) */}
-          <div ref={moreRef} className="relative 2xl:hidden">
+          {/* "More ▾" Dropdown Menu on Desktop for secondary cultural dimensions */}
+          <div ref={moreRef} className="relative">
             <button
               onClick={() => setMoreDropdownOpen((prev) => !prev)}
               className={`flex items-center gap-1 px-2.5 py-1.5 text-xs xl:text-[13px] font-semibold transition-all rounded-lg whitespace-nowrap cursor-pointer ${
