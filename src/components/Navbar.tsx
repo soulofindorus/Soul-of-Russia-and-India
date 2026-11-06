@@ -111,119 +111,143 @@ export const Navbar: React.FC<NavbarProps> = ({
       ? 'अन्य'
       : 'Explore More';
 
+  const getNavDisplayLabel = (id: string, defaultLabel: string) => {
+    if (id === 'victory') {
+      if (currentLang === 'en') return 'Victory';
+      if (currentLang === 'hi') return 'विजय';
+      return 'Память победы';
+    }
+    if (id === 'articles') {
+      if (currentLang === 'en') return 'Articles';
+      if (currentLang === 'hi') return 'लेख';
+      return 'Статьи';
+    }
+    return defaultLabel;
+  };
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-amber-500/20 bg-white/80 backdrop-blur-md transition-all shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-      <div className="mx-auto flex h-16 sm:h-20 w-full max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4">
-        {/* Brand Logo - Strictly uncrushable (shrink-0, min-w-max) */}
-        <button
-          onClick={() => handleNavClick('home')}
-          className="group flex items-center gap-2.5 sm:gap-3 text-left focus:outline-none shrink-0 cursor-pointer select-none"
-          title="Soul of Russia & India - Home"
-        >
-          <div className="relative flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-amber-500 shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-transform group-hover:scale-105 bg-white">
-            <img
-              src="/emblem.jpg"
-              alt="Soul of Russia and India Emblem"
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-            <span className="absolute inset-0 flex items-center justify-center font-bold text-amber-700 opacity-0 group-hover:opacity-100 transition-opacity bg-white/70 text-xs">
-              SRI
-            </span>
-          </div>
-
-          <div className="flex flex-col shrink-0 min-w-max">
-            <div className="font-cinzel text-xs xs:text-sm sm:text-base md:text-lg font-bold tracking-wider text-slate-900 group-hover:text-amber-700 transition-colors whitespace-nowrap leading-tight">
-              SOUL OF RUSSIA & INDIA
-            </div>
-            {/* Single-line bilingual subtitle (strict whitespace-nowrap, never wraps vertically) */}
-            <div className="hidden sm:flex items-center gap-1.5 text-[10px] sm:text-[11px] text-amber-800/90 font-serif-culture font-semibold whitespace-nowrap leading-tight mt-0.5">
-              <span className="text-blue-900 font-bold whitespace-nowrap">Душа России и Индии</span>
-              <span className="text-amber-600 font-bold">•</span>
-              <span className="font-devanagari text-orange-800 font-bold whitespace-nowrap">भारत और रूस की आत्मा</span>
-            </div>
-          </div>
-        </button>
-
-        {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 shrink-0 ml-2 xl:ml-4">
-          {/* Primary Nav Links */}
-          {primaryNavItems.map((item) => {
-            const isActive = activeSection === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                className={`px-2.5 py-1.5 text-xs xl:text-[13px] font-semibold transition-all rounded-lg whitespace-nowrap cursor-pointer ${
-                  isActive
-                    ? 'text-amber-900 bg-amber-500/20 border border-amber-500/40 font-bold shadow-sm'
-                    : 'text-slate-700 hover:text-amber-800 hover:bg-amber-50/80'
-                }`}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-
-          {/* "More ▾" Dropdown Menu on Desktop for secondary cultural dimensions */}
-          <div ref={moreRef} className="relative">
-            <button
-              onClick={() => setMoreDropdownOpen((prev) => !prev)}
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs xl:text-[13px] font-semibold transition-all rounded-lg whitespace-nowrap cursor-pointer ${
-                isSecondaryActive
-                  ? 'text-amber-900 bg-amber-500/20 border border-amber-500/40 font-bold shadow-sm'
-                  : 'text-slate-700 hover:text-amber-800 hover:bg-amber-50/80'
-              }`}
-              title="More Cultural Sections"
-            >
-              <span>{moreLabel}</span>
-              <ChevronDown
-                className={`h-3.5 w-3.5 text-amber-700 transition-transform duration-200 ${
-                  moreDropdownOpen ? 'rotate-180' : ''
-                }`}
+    <header className="sticky top-0 z-50 w-full border-b border-amber-500/20 bg-white/85 backdrop-blur-md transition-all shadow-[0_4px_25px_rgba(0,0,0,0.04)]">
+      <div className="mx-auto flex h-16 sm:h-20 w-full max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
+        {/* Left Column (flex-1): Brand Logo aligned with page left boundary */}
+        <div className="flex-1 flex items-center justify-start min-w-0">
+          <button
+            onClick={() => handleNavClick('home')}
+            className="group flex items-center gap-2.5 sm:gap-3 text-left focus:outline-none shrink-0 cursor-pointer select-none"
+            title="Soul of Russia & India - Home"
+          >
+            <div className="relative flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-amber-500 shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-transform group-hover:scale-105 bg-white">
+              <img
+                src="/emblem.jpg"
+                alt="Soul of Russia and India Emblem"
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
               />
-            </button>
+              <span className="absolute inset-0 flex items-center justify-center font-bold text-amber-700 opacity-0 group-hover:opacity-100 transition-opacity bg-white/70 text-xs">
+                SRI
+              </span>
+            </div>
 
-            {/* Floating Dropdown Card */}
-            {moreDropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-amber-500/30 bg-white/95 p-2 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-1">
-                <div className="px-3 py-1.5 border-b border-amber-500/20 text-[10px] uppercase font-bold tracking-wider text-amber-800">
-                  Cultural Dimensions
-                </div>
-                {secondaryNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeSection === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleNavClick(item.id)}
-                      className={`w-full flex items-start gap-3 rounded-xl p-2.5 text-left transition-all cursor-pointer ${
-                        isActive
-                          ? 'bg-amber-100/90 text-amber-900 border border-amber-500/30 font-bold'
-                          : 'hover:bg-amber-50/80 text-slate-700 hover:text-amber-900'
-                      }`}
-                    >
-                      <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-700 shrink-0">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold leading-snug">{item.label}</div>
-                        <div className="text-[10px] text-slate-500 leading-snug mt-0.5 truncate">
-                          {item.desc}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+            <div className="flex flex-col shrink-0 min-w-max">
+              <div className="font-cinzel text-xs xs:text-sm sm:text-base md:text-lg font-bold tracking-wider text-slate-900 group-hover:text-amber-700 transition-colors whitespace-nowrap leading-tight">
+                SOUL OF RUSSIA & INDIA
               </div>
-            )}
+              {/* Single-line bilingual subtitle (strict whitespace-nowrap, never wraps vertically) */}
+              <div className="hidden xl:flex items-center gap-1.5 text-[10px] xl:text-[11px] text-amber-800/90 font-serif-culture font-semibold whitespace-nowrap leading-tight mt-0.5">
+                <span className="text-blue-900 font-bold whitespace-nowrap">Душа России и Индии</span>
+                <span className="text-amber-600 font-bold">•</span>
+                <span className="font-devanagari text-orange-800 font-bold whitespace-nowrap">भारत और रूस की आत्मा</span>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* Center Column: Symmetrically centered Navigation Pill Bar (1024px+) */}
+        <nav className="hidden lg:flex items-center justify-center shrink-0 mx-2 xl:mx-4">
+          <div className="flex items-center gap-0.5 xl:gap-1 rounded-full p-1 border border-amber-500/25 bg-amber-50/50 backdrop-blur-md shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]">
+            {/* Primary Nav Links */}
+            {primaryNavItems.map((item) => {
+              const isActive = activeSection === item.id;
+              const displayLabel = getNavDisplayLabel(item.id, item.label);
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  title={item.label}
+                  className={`px-2.5 xl:px-3 py-1.5 text-xs xl:text-[13px] font-semibold transition-all duration-200 rounded-full whitespace-nowrap cursor-pointer select-none ${
+                    isActive
+                      ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/25'
+                      : 'text-slate-700 hover:text-amber-900 hover:bg-white/80'
+                  }`}
+                >
+                  {displayLabel}
+                </button>
+              );
+            })}
+
+            {/* Subtle Divider */}
+            <div className="h-4 w-px bg-amber-300/60 mx-0.5" />
+
+            {/* "Explore More ▾" Dropdown Menu */}
+            <div ref={moreRef} className="relative">
+              <button
+                onClick={() => setMoreDropdownOpen((prev) => !prev)}
+                className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 text-xs xl:text-[13px] font-semibold transition-all duration-200 rounded-full whitespace-nowrap cursor-pointer select-none ${
+                  isSecondaryActive
+                    ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/25'
+                    : 'text-slate-700 hover:text-amber-900 hover:bg-white/80'
+                }`}
+                title="More Cultural Sections"
+              >
+                <span>{moreLabel}</span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                    moreDropdownOpen ? 'rotate-180 text-slate-950' : 'text-amber-700'
+                  }`}
+                />
+              </button>
+
+              {/* Floating Dropdown Card */}
+              {moreDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-amber-500/30 bg-white/95 p-2 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-1 text-slate-800">
+                  <div className="px-3 py-1.5 border-b border-amber-500/20 text-[10px] uppercase font-bold tracking-wider text-amber-800 flex items-center justify-between">
+                    <span>Cultural Dimensions</span>
+                    <span className="text-amber-600">✦</span>
+                  </div>
+                  {secondaryNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeSection === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleNavClick(item.id)}
+                        className={`w-full flex items-start gap-3 rounded-xl p-2.5 text-left transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-amber-100/90 text-amber-950 border border-amber-500/40 font-bold shadow-sm'
+                            : 'hover:bg-amber-50/80 text-slate-700 hover:text-amber-900'
+                        }`}
+                      >
+                        <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-700 shrink-0">
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold leading-snug">{item.label}</div>
+                          <div className="text-[10px] text-slate-500 leading-snug mt-0.5 truncate">
+                            {item.desc}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </nav>
 
-        {/* Right side: Search, Admin & Language Switcher */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto lg:ml-0">
+        {/* Right Column (flex-1): Search, Admin & Language Switcher aligned with page right boundary */}
+        <div className="flex-1 flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
           {/* Admin Indicator */}
           {isAdmin && onOpenAdmin && (
             <button
@@ -260,7 +284,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Mobile & Tablet Menu Toggle (shown on screens < 1024px) */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg border border-slate-300 bg-white/90 text-slate-700 hover:text-amber-700 shadow-sm lg:hidden focus:outline-none shrink-0 cursor-pointer"
+            className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-slate-300 bg-white/90 text-slate-700 hover:text-amber-700 shadow-sm lg:hidden focus:outline-none shrink-0 cursor-pointer"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Menu className="h-5 w-5 sm:h-6 sm:w-6" />}

@@ -165,8 +165,11 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-amber-500/40 bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:border-amber-500 hover:bg-amber-50/50 transition-all focus:outline-none shrink-0 cursor-pointer"
       >
         <span className="text-sm shrink-0">{currentOption.flag}</span>
-        <span className="font-serif-culture font-bold text-slate-900 whitespace-nowrap">
+        <span className="hidden xs:inline font-serif-culture font-bold text-slate-900 whitespace-nowrap">
           {currentOption.nativeLabel}
+        </span>
+        <span className="inline xs:hidden font-serif-culture font-bold text-slate-900 whitespace-nowrap text-[11px]">
+          {currentOption.shortLabel}
         </span>
         <ChevronDown
           className={`h-3.5 w-3.5 text-amber-600 transition-transform duration-200 shrink-0 ${
