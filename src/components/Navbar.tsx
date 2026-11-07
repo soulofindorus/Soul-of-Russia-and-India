@@ -140,11 +140,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-amber-500/20 bg-white/85 backdrop-blur-md transition-all shadow-[0_4px_25px_rgba(0,0,0,0.04)]">
-      {/* Container: relative positioning allows absolute mathematical centering of center navigation on desktop */}
-      <div className="relative mx-auto flex h-16 sm:h-20 w-full max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
-        {/* Left Column: Brand Logo aligned with page left boundary (shrink-0 min-w-max prevents squishing or hiding) */}
-        <div className="flex items-center shrink-0 min-w-max z-10 mr-2 sm:mr-3">
+    <header className="sticky top-0 z-50 w-full border-b border-amber-500/20 bg-white/90 backdrop-blur-md transition-all shadow-[0_4px_25px_rgba(0,0,0,0.04)]">
+      {/* Container:
+          On mobile (<1024px): clean flex layout with logo on left, actions on right.
+          On desktop & tablets (>=1024px): 3-column CSS Grid.
+          Separate grid cells GUARANTEE that nav bar can NEVER physically overlap the logo or search button!
+      */}
+      <div className="mx-auto flex lg:grid lg:grid-cols-[auto_1fr_auto] xl:grid-cols-[1fr_auto_1fr] h-16 sm:h-20 w-full max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4">
+        {/* Left Column: Brand Logo aligned with page left boundary */}
+        <div className="flex items-center shrink-0 min-w-max justify-start z-10">
           <button
             onClick={() => handleNavClick('home')}
             className="group flex items-center gap-2 sm:gap-3 text-left focus:outline-none shrink-0 cursor-pointer select-none"
@@ -165,7 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             <div className="flex flex-col shrink-0 min-w-max">
-              <div className="font-cinzel text-xs sm:text-sm md:text-base lg:text-lg font-bold tracking-wider text-slate-900 group-hover:text-amber-700 transition-colors whitespace-nowrap leading-tight">
+              <div className="font-cinzel text-xs sm:text-sm md:text-base lg:text-[17px] font-bold tracking-wider text-slate-900 group-hover:text-amber-700 transition-colors whitespace-nowrap leading-tight">
                 SOUL OF RUSSIA & INDIA
               </div>
               {/* Single-line bilingual subtitle (strict whitespace-nowrap, visible on xl+ displays) */}
@@ -178,9 +182,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
 
-        {/* Center Column: Symmetrically & Mathematically Centered Navigation Pill Bar (1024px+) */}
-        <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-20 pointer-events-auto">
-          <div className="flex items-center gap-0.5 xl:gap-1 rounded-full p-1 border border-amber-500/25 bg-amber-50/60 backdrop-blur-md shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]">
+        {/* Center Column: Symmetrically Centered Navigation Pill Bar (IN-FLOW: IMPOSSIBLE TO OVERLAP!) */}
+        <nav className="hidden lg:flex items-center justify-center px-1">
+          <div className="flex items-center gap-0.5 xl:gap-1 rounded-full p-1 border border-amber-500/25 bg-amber-50/70 backdrop-blur-md shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]">
             {/* Primary Nav Links */}
             {primaryNavItems.map((item) => {
               const isActive = activeSection === item.id;
@@ -191,7 +195,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => handleNavClick(item.id)}
                   title={item.label}
                   className={`px-2 xl:px-2.5 2xl:px-3 py-1 xl:py-1.5 text-xs xl:text-[13px] font-semibold transition-all duration-200 rounded-full whitespace-nowrap cursor-pointer select-none ${
-                    item.id === 'home' ? 'hidden 2xl:inline-block' : ''
+                    item.id === 'home'
+                      ? 'hidden 2xl:inline-block'
+                      : item.id === 'opportunities'
+                      ? 'hidden xl:inline-block'
+                      : ''
                   } ${
                     isActive
                       ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/25'
@@ -235,8 +243,29 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="absolute right-0 top-full mt-1.5 w-80 rounded-2xl border border-amber-500/30 bg-white/95 p-2.5 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-1 text-slate-800">
                   <div className="px-3 py-1.5 border-b border-amber-500/20 text-[10px] uppercase font-bold tracking-wider text-amber-800 flex items-center justify-between">
                     <span>Cultural Subsections</span>
-                    <span className="text-amber-600 text-xs font-semibold">4 Portals ✦</span>
+                    <span className="text-amber-600 text-xs font-semibold">Portals ✦</span>
                   </div>
+
+                  {/* Opportunities is included here on screens where it's hidden in the pill bar */}
+                  <button
+                    onClick={() => handleNavClick('opportunities')}
+                    className={`xl:hidden w-full flex items-start gap-3 rounded-xl p-2.5 text-left transition-all cursor-pointer ${
+                      activeSection === 'opportunities'
+                        ? 'bg-amber-100/90 text-amber-950 border border-amber-500/40 font-bold shadow-sm'
+                        : 'hover:bg-amber-50/80 text-slate-700 hover:text-amber-900'
+                    }`}
+                  >
+                    <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-700 shrink-0">
+                      <GraduationCap className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold leading-snug">{t.nav.opportunities}</div>
+                      <div className="text-[10px] text-slate-500 leading-snug mt-0.5">
+                        {currentLang === 'ru' ? 'Гранты, стипендии и стажировки' : currentLang === 'hi' ? 'छात्रवृत्तियां और अवसर' : 'Scholarships, Fellowships & Exchanges'}
+                      </div>
+                    </div>
+                  </button>
+
                   {secondaryNavItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = activeSection === item.id;
@@ -269,7 +298,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </nav>
 
         {/* Right Column: Search, Admin & Language Switcher aligned with page right boundary */}
-        <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 z-10 ml-auto">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 z-10">
           {/* Admin Indicator */}
           {isAdmin && onOpenAdmin && (
             <button
