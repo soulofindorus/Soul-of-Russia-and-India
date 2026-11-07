@@ -41,7 +41,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </div>
 
       {/* Main Hero Banner */}
-      <div className="mx-auto w-full max-w-7xl px-3 pt-12 pb-16 sm:px-6 lg:px-8 text-center space-y-6 sm:space-y-8 flex flex-col items-center">
+      <div className="mx-auto w-full max-w-7xl px-3 pt-16 sm:pt-20 lg:pt-24 pb-16 sm:px-6 lg:px-8 text-center space-y-6 sm:space-y-8 flex flex-col items-center">
         {/* Visual Bridge Badge */}
         <div className="inline-flex max-w-[95vw] flex-wrap items-center justify-center gap-2 sm:gap-3 rounded-full border border-amber-500/40 bg-white/70 px-3.5 py-1.5 sm:px-5 sm:py-2 text-[11px] sm:text-xs shadow-[0_4px_20px_rgba(212,175,55,0.18)] backdrop-blur-md">
           <span className="flex items-center gap-1 font-bold text-blue-900">

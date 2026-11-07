@@ -111,16 +111,30 @@ export const Navbar: React.FC<NavbarProps> = ({
       ? 'अन्य'
       : 'Explore More';
 
-  const getNavDisplayLabel = (id: string, defaultLabel: string) => {
+  const getNavDisplayLabel = (id: string, defaultLabel: string): React.ReactNode => {
     if (id === 'victory') {
       if (currentLang === 'en') return 'Victory';
       if (currentLang === 'hi') return 'विजय';
-      return 'Память победы';
+      return (
+        <span>
+          <span className="hidden xl:inline">Память </span>Победы
+        </span>
+      );
     }
     if (id === 'articles') {
       if (currentLang === 'en') return 'Articles';
       if (currentLang === 'hi') return 'लेख';
       return 'Статьи';
+    }
+    if (id === 'opportunities') {
+      if (currentLang === 'ru') {
+        return (
+          <span>
+            <span className="hidden xl:inline">Возможности</span>
+            <span className="xl:hidden">Гранты</span>
+          </span>
+        );
+      }
     }
     return defaultLabel;
   };
@@ -128,8 +142,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-50 w-full border-b border-amber-500/20 bg-white/85 backdrop-blur-md transition-all shadow-[0_4px_25px_rgba(0,0,0,0.04)]">
       <div className="mx-auto flex h-16 sm:h-20 w-full max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
-        {/* Left Column (flex-1): Brand Logo aligned with page left boundary */}
-        <div className="flex-1 flex items-center justify-start min-w-0">
+        {/* Left Column: Brand Logo aligned with page left boundary (shrink-0 min-w-max prevents squishing or hiding) */}
+        <div className="flex items-center shrink-0 min-w-max mr-2 lg:mr-3 xl:mr-6">
           <button
             onClick={() => handleNavClick('home')}
             className="group flex items-center gap-2.5 sm:gap-3 text-left focus:outline-none shrink-0 cursor-pointer select-none"
@@ -164,7 +178,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center Column: Symmetrically centered Navigation Pill Bar (1024px+) */}
-        <nav className="hidden lg:flex items-center justify-center shrink-0 mx-2 xl:mx-4">
+        <nav className="hidden lg:flex items-center justify-center shrink-0 mx-auto px-1">
           <div className="flex items-center gap-0.5 xl:gap-1 rounded-full p-1 border border-amber-500/25 bg-amber-50/50 backdrop-blur-md shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]">
             {/* Primary Nav Links */}
             {primaryNavItems.map((item) => {
@@ -175,7 +189,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
                   title={item.label}
-                  className={`px-2.5 xl:px-3 py-1.5 text-xs xl:text-[13px] font-semibold transition-all duration-200 rounded-full whitespace-nowrap cursor-pointer select-none ${
+                  className={`px-2 xl:px-3 py-1 xl:py-1.5 text-xs xl:text-[13px] font-semibold transition-all duration-200 rounded-full whitespace-nowrap cursor-pointer select-none ${
+                    item.id === 'home' ? 'hidden 2xl:inline-block' : ''
+                  } ${
                     isActive
                       ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/25'
                       : 'text-slate-700 hover:text-amber-900 hover:bg-white/80'
@@ -193,7 +209,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div ref={moreRef} className="relative">
               <button
                 onClick={() => setMoreDropdownOpen((prev) => !prev)}
-                className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 text-xs xl:text-[13px] font-semibold transition-all duration-200 rounded-full whitespace-nowrap cursor-pointer select-none ${
+                className={`flex items-center gap-1 px-2 xl:px-3 py-1 xl:py-1.5 text-xs xl:text-[13px] font-semibold transition-all duration-200 rounded-full whitespace-nowrap cursor-pointer select-none ${
                   isSecondaryActive
                     ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/25'
                     : 'text-slate-700 hover:text-amber-900 hover:bg-white/80'
@@ -246,8 +262,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </nav>
 
-        {/* Right Column (flex-1): Search, Admin & Language Switcher aligned with page right boundary */}
-        <div className="flex-1 flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
+        {/* Right Column: Search, Admin & Language Switcher aligned with page right boundary */}
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 ml-auto">
           {/* Admin Indicator */}
           {isAdmin && onOpenAdmin && (
             <button
