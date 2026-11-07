@@ -141,15 +141,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-amber-500/20 bg-white/85 backdrop-blur-md transition-all shadow-[0_4px_25px_rgba(0,0,0,0.04)]">
-      <div className="mx-auto flex h-16 sm:h-20 w-full max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
+      {/* Container: relative positioning allows absolute mathematical centering of center navigation on desktop */}
+      <div className="relative mx-auto flex h-16 sm:h-20 w-full max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
         {/* Left Column: Brand Logo aligned with page left boundary (shrink-0 min-w-max prevents squishing or hiding) */}
-        <div className="flex items-center shrink-0 min-w-max mr-2 lg:mr-3 xl:mr-6">
+        <div className="flex items-center shrink-0 min-w-max z-10 mr-2 sm:mr-3">
           <button
             onClick={() => handleNavClick('home')}
-            className="group flex items-center gap-2.5 sm:gap-3 text-left focus:outline-none shrink-0 cursor-pointer select-none"
+            className="group flex items-center gap-2 sm:gap-3 text-left focus:outline-none shrink-0 cursor-pointer select-none"
             title="Soul of Russia & India - Home"
           >
-            <div className="relative flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-amber-500 shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-transform group-hover:scale-105 bg-white">
+            <div className="relative flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-amber-500 shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-transform group-hover:scale-105 bg-white">
               <img
                 src="/emblem.jpg"
                 alt="Soul of Russia and India Emblem"
@@ -164,10 +165,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             <div className="flex flex-col shrink-0 min-w-max">
-              <div className="font-cinzel text-xs xs:text-sm sm:text-base md:text-lg font-bold tracking-wider text-slate-900 group-hover:text-amber-700 transition-colors whitespace-nowrap leading-tight">
+              <div className="font-cinzel text-xs sm:text-sm md:text-base lg:text-lg font-bold tracking-wider text-slate-900 group-hover:text-amber-700 transition-colors whitespace-nowrap leading-tight">
                 SOUL OF RUSSIA & INDIA
               </div>
-              {/* Single-line bilingual subtitle (strict whitespace-nowrap, never wraps vertically) */}
+              {/* Single-line bilingual subtitle (strict whitespace-nowrap, visible on xl+ displays) */}
               <div className="hidden xl:flex items-center gap-1.5 text-[10px] xl:text-[11px] text-amber-800/90 font-serif-culture font-semibold whitespace-nowrap leading-tight mt-0.5">
                 <span className="text-blue-900 font-bold whitespace-nowrap">Душа России и Индии</span>
                 <span className="text-amber-600 font-bold">•</span>
@@ -177,9 +178,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
 
-        {/* Center Column: Symmetrically centered Navigation Pill Bar (1024px+) */}
-        <nav className="hidden lg:flex items-center justify-center shrink-0 mx-auto px-1">
-          <div className="flex items-center gap-0.5 xl:gap-1 rounded-full p-1 border border-amber-500/25 bg-amber-50/50 backdrop-blur-md shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]">
+        {/* Center Column: Symmetrically & Mathematically Centered Navigation Pill Bar (1024px+) */}
+        <nav className="hidden lg:flex items-center justify-center absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-20 pointer-events-auto">
+          <div className="flex items-center gap-0.5 xl:gap-1 rounded-full p-1 border border-amber-500/25 bg-amber-50/60 backdrop-blur-md shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]">
             {/* Primary Nav Links */}
             {primaryNavItems.map((item) => {
               const isActive = activeSection === item.id;
@@ -189,7 +190,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
                   title={item.label}
-                  className={`px-2 xl:px-3 py-1 xl:py-1.5 text-xs xl:text-[13px] font-semibold transition-all duration-200 rounded-full whitespace-nowrap cursor-pointer select-none ${
+                  className={`px-2 xl:px-2.5 2xl:px-3 py-1 xl:py-1.5 text-xs xl:text-[13px] font-semibold transition-all duration-200 rounded-full whitespace-nowrap cursor-pointer select-none ${
                     item.id === 'home' ? 'hidden 2xl:inline-block' : ''
                   } ${
                     isActive
@@ -205,16 +206,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Subtle Divider */}
             <div className="h-4 w-px bg-amber-300/60 mx-0.5" />
 
-            {/* "Explore More ▾" Dropdown Menu */}
-            <div ref={moreRef} className="relative">
+            {/* "Explore More ▾" Dropdown Menu (Accessible via Hover and Click) */}
+            <div
+              ref={moreRef}
+              className="relative"
+              onMouseEnter={() => setMoreDropdownOpen(true)}
+              onMouseLeave={() => setMoreDropdownOpen(false)}
+            >
               <button
                 onClick={() => setMoreDropdownOpen((prev) => !prev)}
-                className={`flex items-center gap-1 px-2 xl:px-3 py-1 xl:py-1.5 text-xs xl:text-[13px] font-semibold transition-all duration-200 rounded-full whitespace-nowrap cursor-pointer select-none ${
+                className={`flex items-center gap-1 px-2 xl:px-2.5 2xl:px-3 py-1 xl:py-1.5 text-xs xl:text-[13px] font-semibold transition-all duration-200 rounded-full whitespace-nowrap cursor-pointer select-none ${
                   isSecondaryActive
                     ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/25'
                     : 'text-slate-700 hover:text-amber-900 hover:bg-white/80'
                 }`}
-                title="More Cultural Sections"
+                title="More Cultural Sections & Subsections"
               >
                 <span>{moreLabel}</span>
                 <ChevronDown
@@ -224,12 +230,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                 />
               </button>
 
-              {/* Floating Dropdown Card */}
+              {/* Floating Dropdown Card showing All Subsections */}
               {moreDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-amber-500/30 bg-white/95 p-2 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-1 text-slate-800">
+                <div className="absolute right-0 top-full mt-1.5 w-80 rounded-2xl border border-amber-500/30 bg-white/95 p-2.5 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-1 text-slate-800">
                   <div className="px-3 py-1.5 border-b border-amber-500/20 text-[10px] uppercase font-bold tracking-wider text-amber-800 flex items-center justify-between">
-                    <span>Cultural Dimensions</span>
-                    <span className="text-amber-600">✦</span>
+                    <span>Cultural Subsections</span>
+                    <span className="text-amber-600 text-xs font-semibold">4 Portals ✦</span>
                   </div>
                   {secondaryNavItems.map((item) => {
                     const Icon = item.icon;
@@ -249,7 +255,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </div>
                         <div className="min-w-0">
                           <div className="text-xs font-bold leading-snug">{item.label}</div>
-                          <div className="text-[10px] text-slate-500 leading-snug mt-0.5 truncate">
+                          <div className="text-[10px] text-slate-500 leading-snug mt-0.5">
                             {item.desc}
                           </div>
                         </div>
@@ -263,12 +269,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         </nav>
 
         {/* Right Column: Search, Admin & Language Switcher aligned with page right boundary */}
-        <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 ml-auto">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 z-10 ml-auto">
           {/* Admin Indicator */}
           {isAdmin && onOpenAdmin && (
             <button
               onClick={onOpenAdmin}
-              className="flex items-center gap-1.5 rounded-full border border-emerald-500/50 bg-emerald-50/90 px-2.5 py-1 text-[11px] font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 rounded-full border border-emerald-500/50 bg-emerald-50/90 px-2 sm:px-2.5 py-1 text-[11px] font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 transition-colors cursor-pointer"
               title="Admin Session Active - Click to manage"
             >
               <span className="relative flex h-2 w-2">
@@ -290,7 +296,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <kbd className="hidden rounded bg-slate-100 border border-slate-200 px-1 py-0.5 text-[10px] text-slate-500 md:inline">⌘K</kbd>
           </button>
 
-          {/* Compact Dropdown Language Switcher */}
+          {/* Compact Dropdown Language Switcher (Flag + Native/Short Label) */}
           <LanguageSwitcher
             currentLang={currentLang}
             onLanguageChange={onLanguageChange}
@@ -308,28 +314,89 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Mobile Drawer (Accessible on phones and tablets) */}
+      {/* Responsive Mobile Drawer (Formatted for Mobile Portrait, Landscape & Tablets) */}
       {mobileMenuOpen && (
-        <div className="border-b border-amber-500/30 bg-white/95 px-4 pt-3 pb-6 lg:hidden animate-in fade-in slide-in-from-top-4 duration-200 space-y-4 shadow-xl max-h-[85vh] overflow-y-auto">
-          <div className="grid grid-cols-2 gap-2 py-1">
-            {allNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.id)}
-                  className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-amber-100/90 text-amber-900 border border-amber-500/50 shadow-sm font-bold'
-                      : 'bg-slate-50 text-slate-700 hover:bg-amber-50/80 border border-slate-200/60'
-                  }`}
-                >
-                  <Icon className="h-4 w-4 text-amber-600 shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                </button>
-              );
-            })}
+        <div className="border-b border-amber-500/30 bg-white/98 backdrop-blur-xl px-3 sm:px-6 pt-3 pb-6 lg:hidden animate-in fade-in slide-in-from-top-4 duration-200 space-y-4 shadow-2xl max-h-[82vh] overflow-y-auto overscroll-contain">
+          {/* Section Category 1: Core Civilizational Portals */}
+          <div className="space-y-1.5">
+            <div className="px-1 text-[11px] font-bold uppercase tracking-wider text-amber-800 flex items-center justify-between">
+              <span>Core Portals & Memorials</span>
+              <span className="text-[10px] text-slate-500 font-normal">Heritage & History</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {primaryNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                const displayLabel = getNavDisplayLabel(item.id, item.label);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavClick(item.id)}
+                    className={`flex items-center justify-between rounded-xl p-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                        : 'bg-amber-50/50 text-slate-800 hover:bg-amber-100/70 border border-amber-200/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`flex h-7 w-7 items-center justify-center rounded-lg shrink-0 ${
+                        isActive ? 'bg-black/10 text-slate-950' : 'bg-amber-500/15 text-amber-700'
+                      }`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <span className="text-left font-medium leading-tight">
+                        {displayLabel}
+                      </span>
+                    </div>
+                    {isActive && (
+                      <span className="h-2 w-2 rounded-full bg-slate-950 shrink-0 ml-2" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section Category 2: Cultural Bridge & Exploration */}
+          <div className="space-y-1.5 border-t border-slate-200 pt-3">
+            <div className="px-1 text-[11px] font-bold uppercase tracking-wider text-amber-800 flex items-center justify-between">
+              <span>Cultural Bridge & Knowledge</span>
+              <span className="text-[10px] text-slate-500 font-normal">Civilizational Connection</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {secondaryNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavClick(item.id)}
+                    className={`flex items-center justify-between rounded-xl p-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                        : 'bg-slate-50 text-slate-800 hover:bg-amber-50/80 border border-slate-200/80'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`flex h-7 w-7 items-center justify-center rounded-lg shrink-0 ${
+                        isActive ? 'bg-black/10 text-slate-950' : 'bg-amber-500/15 text-amber-700'
+                      }`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="text-left min-w-0">
+                        <div className="leading-tight font-medium">{item.label}</div>
+                        <div className="text-[10px] text-slate-500 leading-tight mt-0.5 line-clamp-1">
+                          {item.desc}
+                        </div>
+                      </div>
+                    </div>
+                    {isActive && (
+                      <span className="h-2 w-2 rounded-full bg-slate-950 shrink-0 ml-2" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Mobile Persistent Language Selector */}
@@ -344,7 +411,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             />
           </div>
 
-          <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-[11px] text-slate-500 font-serif-culture">
+          {/* Footer bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-2 text-[11px] text-slate-500 font-serif-culture">
             <span className="flex items-center gap-1 text-amber-700 font-bold">
               <Globe className="h-3.5 w-3.5" /> {currentLang.toUpperCase()} Mode Active
             </span>

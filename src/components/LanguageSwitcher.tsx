@@ -165,10 +165,10 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-amber-500/40 bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:border-amber-500 hover:bg-amber-50/50 transition-all focus:outline-none shrink-0 cursor-pointer"
       >
         <span className="text-sm shrink-0">{currentOption.flag}</span>
-        <span className="hidden xs:inline font-serif-culture font-bold text-slate-900 whitespace-nowrap">
+        <span className="hidden sm:inline font-serif-culture font-bold text-slate-900 whitespace-nowrap">
           {currentOption.nativeLabel}
         </span>
-        <span className="inline xs:hidden font-serif-culture font-bold text-slate-900 whitespace-nowrap text-[11px]">
+        <span className="inline sm:hidden font-serif-culture font-bold text-slate-900 whitespace-nowrap text-[11px]">
           {currentOption.shortLabel}
         </span>
         <ChevronDown
@@ -245,12 +245,12 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
             </div>
 
             {/* Footer with Cultural Motto */}
-            <div className="mt-3 border-t border-slate-800/80 pt-2 px-1 text-[10px] text-slate-400 flex items-center justify-between">
-              <span className="flex items-center gap-1 text-amber-300/80">
-                <Sparkles className="h-3 w-3 text-amber-400" />
+            <div className="mt-3 border-t border-slate-200 pt-2 px-1 text-[10px] text-slate-500 flex items-center justify-between">
+              <span className="flex items-center gap-1 text-amber-700">
+                <Sparkles className="h-3 w-3 text-amber-500" />
                 <span>Trilingual Civilization Portal</span>
               </span>
-              <span className="text-slate-500">v1.2</span>
+              <span className="text-slate-400">v1.2</span>
             </div>
           </motion.div>
         )}
