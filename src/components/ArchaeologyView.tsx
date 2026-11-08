@@ -24,15 +24,52 @@ import {
   Camera,
   Share2,
   Check,
+  Edit3,
+  PlusCircle,
+  Trash2,
+  Upload,
 } from 'lucide-react';
+import { readFileAsDataUrl } from '../utils/imageUpload';
 
 interface ArchaeologyViewProps {
   currentLang: Language;
+  isAdmin?: boolean;
 }
 
-export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang }) => {
+export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, isAdmin = false }) => {
+  // Dynamic sites state with localStorage persistence
+  const [sites, setSites] = useState<ArchaeologicalSite[]>(() => {
+    const saved = localStorage.getItem('sri_custom_archaeology_sites');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.warn('Failed to parse saved archaeology sites', e);
+      }
+    }
+    return archaeologicalSitesData;
+  });
+
   const [selectedSite, setSelectedSite] = useState<ArchaeologicalSite | null>(null);
   const [dossierSite, setDossierSite] = useState<ArchaeologicalSite | null>(null);
+  const [editingSite, setEditingSite] = useState<ArchaeologicalSite | null>(null);
+  const [isAddSiteModalOpen, setIsAddSiteModalOpen] = useState(false);
+
+  // Add Site Form state
+  const [newSiteName, setNewSiteName] = useState('');
+  const [newSiteNameRu, setNewSiteNameRu] = useState('');
+  const [newSiteCountry, setNewSiteCountry] = useState<'Russia' | 'India'>('India');
+  const [newSiteRegion, setNewSiteRegion] = useState('');
+  const [newSiteLat, setNewSiteLat] = useState('23.88');
+  const [newSiteLng, setNewSiteLng] = useState('70.21');
+  const [newSitePeriod, setNewSitePeriod] = useState('Bronze Age');
+  const [newSiteAge, setNewSiteAge] = useState('c. 2500 BCE');
+  const [newSiteCivilization, setNewSiteCivilization] = useState('Indus Valley / Harappan');
+  const [newSiteDesc, setNewSiteDesc] = useState('');
+  const [newSiteImage, setNewSiteImage] = useState('');
+  const [newSiteArtifacts, setNewSiteArtifacts] = useState('Terracotta seal, Bronze figurine');
+
   const [countryFilter, setCountryFilter] = useState<'All' | 'Russia' | 'India'>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedDirectLink, setCopiedDirectLink] = useState(false);
@@ -77,8 +114,138 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang })
     closeModal: 'Close Dossier',
   };
 
+  // Editing and uploading handlers
+  const handleSiteImageUpload = async (file: File, isEditing: boolean) => {
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      if (isEditing) {
+        setEditingSite((prev) => (prev ? { ...prev, imageUrl: dataUrl } : null));
+      } else {
+        setNewSiteImage(dataUrl);
+      }
+    } catch (err) {
+      console.error('Failed to read image file', err);
+    }
+  };
+
+  const handleStartEditSite = (site: ArchaeologicalSite, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingSite({ ...site });
+  };
+
+  const handleSaveEditSite = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSite) return;
+
+    setSites((prev) => {
+      const updated = prev.map((s) => (s.id === editingSite.id ? editingSite : s));
+      try {
+        localStorage.setItem('sri_custom_archaeology_sites', JSON.stringify(updated));
+      } catch (err) {
+        console.warn('Failed to save archaeology sites', err);
+      }
+      return updated;
+    });
+
+    if (selectedSite?.id === editingSite.id) setSelectedSite(editingSite);
+    if (dossierSite?.id === editingSite.id) setDossierSite(editingSite);
+    setEditingSite(null);
+  };
+
+  const handleDeleteSite = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (confirm('Are you sure you want to delete this archaeological site?')) {
+      setSites((prev) => {
+        const updated = prev.filter((s) => s.id !== id);
+        try {
+          localStorage.setItem('sri_custom_archaeology_sites', JSON.stringify(updated));
+        } catch (err) {}
+        return updated;
+      });
+      if (selectedSite?.id === id) setSelectedSite(null);
+      if (dossierSite?.id === id) setDossierSite(null);
+    }
+  };
+
+  const handleCreateSite = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSiteName.trim()) return;
+
+    const artifactsArr = newSiteArtifacts
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((item) => ({
+        name: item,
+        nameRu: item,
+        nameHi: item,
+        desc: 'Excavated historical artifact discovered at the archaeological site stratum.',
+      }));
+
+    const created: ArchaeologicalSite = {
+      id: `arch-custom-${Date.now()}`,
+      name: newSiteName.trim(),
+      nameRu: newSiteNameRu.trim() || newSiteName.trim(),
+      nameHi: newSiteName.trim(),
+      country: newSiteCountry,
+      region: newSiteRegion.trim() || (newSiteCountry === 'India' ? 'Gujarat, India' : 'Smolensk, Russia'),
+      regionRu: newSiteRegion.trim() || (newSiteCountry === 'India' ? 'Гуджарат, Индия' : 'Смоленск, Россия'),
+      regionHi: newSiteRegion.trim() || newSiteCountry,
+      lat: parseFloat(newSiteLat) || 25.0,
+      lng: parseFloat(newSiteLng) || 60.0,
+      period: newSitePeriod.trim() || 'Ancient Antiquity',
+      periodRu: newSitePeriod.trim() || 'Древность',
+      periodHi: newSitePeriod.trim() || 'प्राचीन काल',
+      age: newSiteAge.trim() || 'c. 3000 BCE',
+      ageRu: newSiteAge.trim() || 'ок. 3000 до н.э.',
+      ageHi: newSiteAge.trim() || 'लगभग 3000 ईसा पूर्व',
+      discovered: 'System Archeological Mission',
+      civilization: newSiteCivilization.trim() || 'Ancient Eurasian Culture',
+      civilizationRu: newSiteCivilization.trim() || 'Древняя Евразийская Культура',
+      civilizationHi: newSiteCivilization.trim() || 'प्राचीन सभ्यता',
+      shortDescription: newSiteDesc.trim().slice(0, 160) || 'Archaeological site featuring ancient stone structures and strata.',
+      shortDescriptionRu: newSiteDesc.trim().slice(0, 160) || 'Археологический памятник с древними каменными сооружениями.',
+      shortDescriptionHi: newSiteDesc.trim().slice(0, 160),
+      description: newSiteDesc.trim() || 'Full archaeological excavation strata detailing civilizational continuity and ancient Eurasian connections.',
+      descriptionRu: newSiteDesc.trim() || 'Полный археологический разрез и культурные слои памятника.',
+      descriptionHi: newSiteDesc.trim(),
+      significance: 'Crucial node demonstrating early urban settlement and trade.',
+      significanceRu: 'Важнейший узел ранней городской цивилизации.',
+      significanceHi: 'महत्वपूर्ण पुरातात्विक केंद्र।',
+      keyArtifacts: artifactsArr.length > 0 ? artifactsArr : [
+        { name: 'Ceramic Pottery', nameRu: 'Керамика', nameHi: 'मिट्टी के बर्तन', desc: 'Ancient pottery shard with geometric slip.' }
+      ],
+      excavationHighlights: ['Stratigraphic layers well preserved', 'Evidence of metal smelting and bead workshops'],
+      excavationHighlightsRu: ['Отличная сохранность стратиграфии', 'Следы металлургии и мастерских'],
+      excavationHighlightsHi: ['परिरक्षित स्तर', 'प्राचीन कार्यशालाएं'],
+      imageUrl: newSiteImage.trim() || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80',
+      galleryImages: [
+        newSiteImage.trim() || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80'
+      ],
+      unescoStatus: 'World Heritage Listed',
+      indoEurasianLink: 'Linked to ancient Eurasian trade arteries spanning Central Asia, the Indus, and the Volga.',
+      indoEurasianLinkRu: 'Связан с древними евразийскими путями между Индом, Волгой и Центральной Азией.',
+      indoEurasianLinkHi: 'प्राचीन यूरेशियाई व्यापारिक मार्गों से जुड़ा हुआ स्थल।',
+    };
+
+    setSites((prev) => {
+      const updated = [created, ...prev];
+      try {
+        localStorage.setItem('sri_custom_archaeology_sites', JSON.stringify(updated));
+      } catch (err) {}
+      return updated;
+    });
+
+    setIsAddSiteModalOpen(false);
+    setNewSiteName('');
+    setNewSiteNameRu('');
+    setNewSiteRegion('');
+    setNewSiteDesc('');
+    setNewSiteImage('');
+  };
+
   // Filter sites based on country & search query
-  const filteredSites = archaeologicalSitesData.filter((site) => {
+  const filteredSites = sites.filter((site) => {
     const matchesCountry = countryFilter === 'All' || site.country === countryFilter;
     const q = searchQuery.toLowerCase().trim();
     if (!q) return matchesCountry;
@@ -282,7 +449,7 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang })
     });
     markersRef.current = {};
 
-    archaeologicalSitesData.forEach((site) => {
+    sites.forEach((site) => {
       const isSelected = selectedSite?.id === site.id;
       const markerIcon = createArchaeologyIcon(site, isSelected);
 
@@ -348,7 +515,7 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang })
 
       markersRef.current[site.id] = marker;
     });
-  }, [activeMap, currentLang, selectedSite?.id, archT.viewDossier]);
+  }, [activeMap, currentLang, selectedSite?.id, archT.viewDossier, sites]);
 
   // Handle clicking on photo / card: Fly map to coordinates, pulse marker, and open popup
   const handleSitePhotoClick = (site: ArchaeologicalSite) => {
@@ -592,59 +759,71 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang })
         </div>
 
         {/* Filter Controls & Search */}
-        <div className="mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Country Switcher */}
-          <div className="flex items-center gap-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
+          <div className="flex items-center gap-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800 w-full md:w-auto overflow-x-auto">
             <button
               onClick={() => setCountryFilter('All')}
-              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
                 countryFilter === 'All'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              {archT.filterAll} ({archaeologicalSitesData.length})
+              {archT.filterAll} ({sites.length})
             </button>
             <button
               onClick={() => setCountryFilter('India')}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
                 countryFilter === 'India'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <span>🇮🇳</span> {archT.filterIndia} (4)
+              <span>🇮🇳</span> {archT.filterIndia} ({sites.filter((s) => s.country === 'India').length})
             </button>
             <button
               onClick={() => setCountryFilter('Russia')}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
                 countryFilter === 'Russia'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <span>🇷🇺</span> {archT.filterRussia} (4)
+              <span>🇷🇺</span> {archT.filterRussia} ({sites.filter((s) => s.country === 'Russia').length})
             </button>
           </div>
 
-          {/* Search bar */}
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={archT.searchPlaceholder}
-              className="w-full rounded-xl border border-slate-700/80 bg-slate-900/90 pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-            />
-            {searchQuery && (
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            {isAdmin && (
               <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                onClick={() => setIsAddSiteModalOpen(true)}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg cursor-pointer transition-all"
               >
-                <X className="h-3.5 w-3.5" />
+                <PlusCircle className="h-4 w-4" />
+                <span>Add Site (Admin)</span>
               </button>
             )}
+
+            {/* Search bar */}
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={archT.searchPlaceholder}
+                className="w-full rounded-xl border border-slate-700/80 bg-slate-900/90 pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -774,10 +953,10 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang })
                 </div>
 
                 {/* Card Action Buttons */}
-                <div className="p-5 pt-0 flex items-center gap-2">
+                <div className="p-5 pt-0 flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => handleSitePhotoClick(site)}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 py-2.5 text-xs font-semibold text-amber-300 hover:bg-amber-500 hover:text-slate-950 transition-colors"
+                    className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 py-2.5 text-xs font-semibold text-amber-300 hover:bg-amber-500 hover:text-slate-950 transition-colors"
                   >
                     <Compass className="h-3.5 w-3.5" />
                     <span>{archT.flyToMap}</span>
@@ -785,11 +964,31 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang })
 
                   <button
                     onClick={() => setDossierSite(site)}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-slate-800 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors"
+                    className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5 rounded-xl bg-slate-800 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors"
                   >
                     <Eye className="h-3.5 w-3.5" />
                     <span>{archT.viewDossier}</span>
                   </button>
+
+                  {isAdmin && (
+                    <div className="flex items-center gap-1.5 w-full pt-1 border-t border-slate-800/80">
+                      <button
+                        onClick={(e) => handleStartEditSite(site, e)}
+                        className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-semibold text-amber-400 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 rounded-xl transition-colors cursor-pointer"
+                        title="Edit site & photo (Admin)"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                        <span>Edit Site</span>
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteSite(site.id, e)}
+                        className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+                        title="Delete site (Admin)"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -948,24 +1147,394 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang })
             </div>
 
             {/* Bottom Modal Actions */}
-            <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-800">
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-800">
+              {isAdmin ? (
+                <button
+                  onClick={() => {
+                    handleStartEditSite(dossierSite);
+                  }}
+                  className="flex items-center gap-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 px-4 py-2 text-xs font-semibold text-amber-300 cursor-pointer transition"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  <span>Edit Site & Photo (Admin)</span>
+                </button>
+              ) : <div />}
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setDossierSite(null)}
+                  className="rounded-xl bg-slate-800 px-5 py-2.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition cursor-pointer"
+                >
+                  {archT.closeModal}
+                </button>
+                <button
+                  onClick={() => {
+                    handleSitePhotoClick(dossierSite);
+                    setDossierSite(null);
+                  }}
+                  className="flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-xs font-bold text-slate-950 hover:bg-amber-400 transition cursor-pointer"
+                >
+                  <Compass className="h-4 w-4" />
+                  <span>{archT.flyToMap}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Add Site Modal */}
+      {isAdmin && isAddSiteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-amber-500/40 bg-[#0b101c] p-6 shadow-2xl text-slate-200 scrollbar-thin">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+              <h3 className="font-serif text-lg font-bold text-white flex items-center gap-2">
+                <Landmark className="h-5 w-5 text-amber-400" />
+                <span>Add Archaeological Site (Admin)</span>
+              </h3>
               <button
-                onClick={() => setDossierSite(null)}
-                className="rounded-xl bg-slate-800 px-5 py-2.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition"
+                onClick={() => setIsAddSiteModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 cursor-pointer"
               >
-                {archT.closeModal}
-              </button>
-              <button
-                onClick={() => {
-                  handleSitePhotoClick(dossierSite);
-                  setDossierSite(null);
-                }}
-                className="flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-xs font-bold text-slate-950 hover:bg-amber-400 transition"
-              >
-                <Compass className="h-4 w-4" />
-                <span>{archT.flyToMap}</span>
+                <X className="h-5 w-5" />
               </button>
             </div>
+
+            <form onSubmit={handleCreateSite} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Site Name (English) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newSiteName}
+                    onChange={(e) => setNewSiteName(e.target.value)}
+                    placeholder="e.g. Rakhigarhi"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Country *</label>
+                  <select
+                    value={newSiteCountry}
+                    onChange={(e) => setNewSiteCountry(e.target.value as 'Russia' | 'India')}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  >
+                    <option value="India">🇮🇳 India</option>
+                    <option value="Russia">🇷🇺 Russia</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Region / Province</label>
+                  <input
+                    type="text"
+                    value={newSiteRegion}
+                    onChange={(e) => setNewSiteRegion(e.target.value)}
+                    placeholder="e.g. Haryana, India"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Civilization / Culture</label>
+                  <input
+                    type="text"
+                    value={newSiteCivilization}
+                    onChange={(e) => setNewSiteCivilization(e.target.value)}
+                    placeholder="e.g. Mature Harappan Phase"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Age / Epoch</label>
+                  <input
+                    type="text"
+                    value={newSiteAge}
+                    onChange={(e) => setNewSiteAge(e.target.value)}
+                    placeholder="e.g. c. 2600 BCE"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Latitude</label>
+                  <input
+                    type="text"
+                    value={newSiteLat}
+                    onChange={(e) => setNewSiteLat(e.target.value)}
+                    placeholder="e.g. 29.28"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Longitude</label>
+                  <input
+                    type="text"
+                    value={newSiteLng}
+                    onChange={(e) => setNewSiteLng(e.target.value)}
+                    placeholder="e.g. 76.11"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Excavation Description & History *</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={newSiteDesc}
+                  onChange={(e) => setNewSiteDesc(e.target.value)}
+                  placeholder="Detail the archeological discoveries, architectural strata, and findings..."
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Key Relics (comma-separated)</label>
+                <input
+                  type="text"
+                  value={newSiteArtifacts}
+                  onChange={(e) => setNewSiteArtifacts(e.target.value)}
+                  placeholder="Terracotta seals, Gold jewellery, Lapidary beads"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                />
+              </div>
+
+              {/* Photo Upload & URL */}
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Excavation Photo</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    value={newSiteImage}
+                    onChange={(e) => setNewSiteImage(e.target.value)}
+                    placeholder="https://... or upload from phone/computer"
+                    className="flex-1 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                  <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 cursor-pointer text-xs font-semibold">
+                    <Upload className="h-3.5 w-3.5 text-amber-400" />
+                    <span>Upload</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleSiteImageUpload(file, false);
+                      }}
+                    />
+                  </label>
+                </div>
+                {newSiteImage && (
+                  <div className="mt-2 relative w-24 h-16 rounded-xl overflow-hidden border border-slate-700">
+                    <img src={newSiteImage} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddSiteModalOpen(false)}
+                  className="rounded-xl px-4 py-2 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2 font-bold text-slate-950 shadow-md hover:from-amber-400 hover:to-amber-500 cursor-pointer"
+                >
+                  Publish Archaeological Site
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Edit Site Modal */}
+      {isAdmin && editingSite && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-amber-500/40 bg-[#0b101c] p-6 sm:p-8 shadow-2xl text-slate-200 scrollbar-thin">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+              <h3 className="font-serif text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <Edit3 className="h-5 w-5 text-amber-400" />
+                <span>Edit Archaeological Site & Photo (Admin)</span>
+              </h3>
+              <button
+                onClick={() => setEditingSite(null)}
+                className="text-slate-400 hover:text-white p-1 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditSite} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Site Name (English) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingSite.name}
+                    onChange={(e) => setEditingSite({ ...editingSite, name: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Site Name (Russian)</label>
+                  <input
+                    type="text"
+                    value={editingSite.nameRu || ''}
+                    onChange={(e) => setEditingSite({ ...editingSite, nameRu: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Region / Province</label>
+                  <input
+                    type="text"
+                    value={editingSite.region}
+                    onChange={(e) => setEditingSite({ ...editingSite, region: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Civilization / Epoch</label>
+                  <input
+                    type="text"
+                    value={editingSite.civilization}
+                    onChange={(e) => setEditingSite({ ...editingSite, civilization: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Age / Date</label>
+                  <input
+                    type="text"
+                    value={editingSite.age}
+                    onChange={(e) => setEditingSite({ ...editingSite, age: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Latitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editingSite.lat}
+                    onChange={(e) => setEditingSite({ ...editingSite, lat: parseFloat(e.target.value) || 0 })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Longitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editingSite.lng}
+                    onChange={(e) => setEditingSite({ ...editingSite, lng: parseFloat(e.target.value) || 0 })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Short Summary *</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={editingSite.shortDescription}
+                  onChange={(e) => setEditingSite({ ...editingSite, shortDescription: e.target.value })}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Full Archaeological Description *</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={editingSite.description}
+                  onChange={(e) => setEditingSite({ ...editingSite, description: e.target.value })}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Indo-Eurasian Civilizational Connection</label>
+                <textarea
+                  rows={2}
+                  value={editingSite.indoEurasianLink}
+                  onChange={(e) => setEditingSite({ ...editingSite, indoEurasianLink: e.target.value })}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              {/* Photo Editing & Local File Upload */}
+              <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 space-y-3">
+                <label className="block text-slate-200 font-semibold">Excavation Photo</label>
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  {editingSite.imageUrl && (
+                    <div className="relative w-24 h-20 rounded-xl overflow-hidden border border-amber-500/40 shrink-0 shadow">
+                      <img src={editingSite.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="flex-1 w-full space-y-2">
+                    <input
+                      type="text"
+                      value={editingSite.imageUrl}
+                      onChange={(e) => setEditingSite({ ...editingSite, imageUrl: e.target.value })}
+                      placeholder="Image URL (https://...)"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white text-xs"
+                    />
+                    <div className="flex items-center gap-2">
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold cursor-pointer transition-colors">
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>Upload Photo from Device</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleSiteImageUpload(file, true);
+                          }}
+                        />
+                      </label>
+                      <span className="text-[11px] text-slate-400">JPG, PNG, WebP supported</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingSite(null)}
+                  className="rounded-xl px-4 py-2 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-2.5 font-bold text-slate-950 shadow-lg hover:from-amber-400 hover:to-amber-500 cursor-pointer"
+                >
+                  Save Archaeological Site
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

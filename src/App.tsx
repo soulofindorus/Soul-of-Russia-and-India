@@ -327,6 +327,17 @@ export default function App() {
     }
   };
 
+  const handleUpdateRegion = (updatedRegion: Region) => {
+    setAllRegions((prev) => {
+      const updated = prev.map((r) => (r.id === updatedRegion.id ? updatedRegion : r));
+      try { localStorage.setItem('sri_custom_regions', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+    if (selectedRegion?.id === updatedRegion.id) {
+      setSelectedRegion(updatedRegion);
+    }
+  };
+
   const handleSelectRegionById = (regionId: string) => {
     const target = allRegions.find((r) => r.id === regionId);
     if (target) {
@@ -389,7 +400,7 @@ export default function App() {
             />
           )}
 
-          {activeSection === 'archaeology' && <ArchaeologyView currentLang={currentLang} />}
+          {activeSection === 'archaeology' && <ArchaeologyView currentLang={currentLang} isAdmin={isAdmin} />}
 
           {activeSection === 'victory' && <VictoryView currentLang={currentLang} isAdmin={isAdmin} />}
 
@@ -424,6 +435,8 @@ export default function App() {
         region={selectedRegion}
         currentLang={currentLang}
         onClose={handleCloseRegion}
+        isAdmin={isAdmin}
+        onUpdateRegion={handleUpdateRegion}
         onPlayVideo={(region) => {
           if (region.videoUrl) {
             handleOpenVideo({

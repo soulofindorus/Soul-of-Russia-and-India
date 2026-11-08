@@ -22,7 +22,10 @@ import {
   Film,
   Image as ImageIcon,
   CheckCircle2,
+  Edit3,
+  Upload,
 } from 'lucide-react';
+import { readFileAsDataUrl } from '../utils/imageUpload';
 
 interface ArticlesViewProps {
   currentLang: Language;
@@ -136,6 +139,83 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
     setNewImage('');
     setNewVideoUrl('');
     setNewTags('Culture, Russia, India');
+  };
+
+  // Admin Edit Article Modal State
+  const [editingArticle, setEditingArticle] = useState<ArticleItem | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editTitleRu, setEditTitleRu] = useState('');
+  const [editHeading, setEditHeading] = useState('');
+  const [editCategory, setEditCategory] = useState('Cultural Diplomacy');
+  const [editAuthor, setEditAuthor] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editReadTime, setEditReadTime] = useState('');
+  const [editExcerpt, setEditExcerpt] = useState('');
+  const [editExcerptRu, setEditExcerptRu] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [editContentRu, setEditContentRu] = useState('');
+  const [editImage, setEditImage] = useState('');
+  const [editVideoUrl, setEditVideoUrl] = useState('');
+  const [editTags, setEditTags] = useState('');
+
+  const handleStartEditArticle = (article: ArticleItem) => {
+    setEditingArticle(article);
+    setEditTitle(article.title);
+    setEditTitleRu(article.titleRu || article.title);
+    setEditHeading(article.heading || article.title);
+    setEditCategory(article.category);
+    setEditAuthor(article.author);
+    setEditDate(article.date);
+    setEditReadTime(article.readTime);
+    setEditExcerpt(article.excerpt);
+    setEditExcerptRu(article.excerptRu || article.excerpt);
+    setEditContent(article.content);
+    setEditContentRu(article.contentRu || article.content);
+    setEditImage(article.image);
+    setEditVideoUrl(article.videoUrl || '');
+    setEditTags(article.tags ? article.tags.join(', ') : '');
+  };
+
+  const handleSaveEditArticle = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingArticle || !editTitle.trim() || !editExcerpt.trim() || !editContent.trim()) return;
+
+    const parsedTags = editTags
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    const updatedArticle: ArticleItem = {
+      ...editingArticle,
+      title: editTitle.trim(),
+      titleRu: editTitleRu.trim() || editTitle.trim(),
+      heading: editHeading.trim() || editTitle.trim(),
+      category: editCategory,
+      author: editAuthor.trim() || 'Administrator',
+      date: editDate.trim() || editingArticle.date,
+      readTime: editReadTime.trim() || '5 min read',
+      excerpt: editExcerpt.trim(),
+      excerptRu: editExcerptRu.trim() || editExcerpt.trim(),
+      content: editContent.trim(),
+      contentRu: editContentRu.trim() || editContent.trim(),
+      image: editImage.trim() || editingArticle.image,
+      videoUrl: editVideoUrl.trim(),
+      tags: parsedTags.length > 0 ? parsedTags : editingArticle.tags,
+    };
+
+    setArticles((prev) => {
+      const updated = prev.map((a) => (a.id === updatedArticle.id ? updatedArticle : a));
+      try {
+        localStorage.setItem('sri_custom_articles', JSON.stringify(updated));
+      } catch (err) {}
+      return updated;
+    });
+
+    if (activeArticle?.id === updatedArticle.id) {
+      setActiveArticle(updatedArticle);
+    }
+
+    setEditingArticle(null);
   };
 
   const handleDeleteArticle = (id: string, e: React.MouseEvent) => {
@@ -351,10 +431,25 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
                 <span>•</span>
                 <span>{featuredArticle.date}</span>
               </div>
-              <span className="flex items-center gap-1 font-bold text-amber-700 group-hover:translate-x-1 transition-transform">
-                <span>Read Story</span>
-                <ChevronRight className="h-4 w-4" />
-              </span>
+              <div className="flex items-center gap-3">
+                {isAdmin && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStartEditArticle(featuredArticle);
+                    }}
+                    className="flex items-center gap-1 text-xs font-bold text-amber-700 hover:text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1"
+                    title="Edit article & photo (Admin)"
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                    <span>Edit</span>
+                  </button>
+                )}
+                <span className="flex items-center gap-1 font-bold text-amber-700 group-hover:translate-x-1 transition-transform">
+                  <span>Read Story</span>
+                  <ChevronRight className="h-4 w-4" />
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -424,19 +519,31 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
 
                 {/* Footer Byline & Actions */}
                 <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-semibold truncate max-w-[150px]">
+                  <span className="text-slate-500 font-semibold truncate max-w-[130px]">
                     by {article.author}
                   </span>
 
                   <div className="flex items-center gap-2">
                     {isAdmin && (
-                      <button
-                        onClick={(e) => handleDeleteArticle(article.id, e)}
-                        className="p-1 text-slate-400 hover:text-red-600 rounded transition-colors"
-                        title="Delete article (Admin)"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartEditArticle(article);
+                          }}
+                          className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors"
+                          title="Edit article & photo (Admin)"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteArticle(article.id, e)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Delete article (Admin)"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     )}
                     <span className="font-bold text-amber-700 flex items-center gap-1">
                       <span>Read</span>
@@ -462,13 +569,27 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
       {activeArticle && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 sm:p-6 backdrop-blur-md animate-fade-in">
           <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl border border-amber-500/30 bg-[#0d1424] text-slate-200 shadow-2xl scrollbar-thin">
-            {/* Close Button */}
-            <button
-              onClick={() => setActiveArticle(null)}
-              className="sticky top-4 right-4 ml-auto block z-20 rounded-full bg-slate-900/90 border border-slate-700 p-2 text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer mr-4"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            {/* Top Action Bar in Modal */}
+            <div className="sticky top-4 right-4 z-20 flex items-center justify-end gap-2 px-4">
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    handleStartEditArticle(activeArticle);
+                  }}
+                  className="flex items-center gap-1.5 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 text-xs shadow-lg transition-colors cursor-pointer"
+                  title="Edit article and photo (Admin)"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                  <span>Edit Article & Photo</span>
+                </button>
+              )}
+              <button
+                onClick={() => setActiveArticle(null)}
+                className="rounded-full bg-slate-900/90 border border-slate-700 p-2 text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
             {/* Article Cover Image */}
             <div className="relative h-64 sm:h-80 w-full overflow-hidden -mt-12 bg-slate-950">
@@ -560,7 +681,18 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
               </div>
 
               {/* Modal Bottom Close */}
-              <div className="pt-4 flex justify-end">
+              <div className="pt-4 flex justify-end gap-3">
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      handleStartEditArticle(activeArticle);
+                    }}
+                    className="rounded-xl border border-amber-500/50 bg-amber-500/10 px-5 py-2 text-xs font-bold text-amber-300 hover:bg-amber-500/20 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                    <span>Edit Article</span>
+                  </button>
+                )}
                 <button
                   onClick={() => setActiveArticle(null)}
                   className="rounded-xl bg-amber-500 px-6 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 transition-colors cursor-pointer"
@@ -647,19 +779,52 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Cover Photo URL *</label>
+              {/* Cover Photo: URL or Device Upload */}
+              <div className="space-y-1.5">
+                <label className="block text-slate-300 font-semibold">
+                  Cover Photo * (Paste Web URL or Upload Photo from Device/Phone)
+                </label>
+                <div className="flex gap-2">
                   <input
-                    type="url"
+                    type="text"
                     required
                     value={newImage}
                     onChange={(e) => setNewImage(e.target.value)}
-                    placeholder="https://images.unsplash.com/photo-..."
-                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                    placeholder="https://images.unsplash.com/... or choose file"
+                    className="flex-1 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white placeholder-slate-500"
                   />
+                  <label className="flex items-center gap-1.5 rounded-xl border border-amber-500/50 bg-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/30 cursor-pointer transition-colors shrink-0">
+                    <Upload className="h-4 w-4" />
+                    <span>Upload Photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            const dataUrl = await readFileAsDataUrl(file);
+                            setNewImage(dataUrl);
+                          } catch (err: any) {
+                            alert(err?.message || 'Failed to read image');
+                          }
+                        }
+                      }}
+                    />
+                  </label>
                 </div>
+                {newImage && (
+                  <div className="relative mt-2 h-32 w-full rounded-xl overflow-hidden border border-slate-700">
+                    <img src={newImage} alt="Cover preview" className="h-full w-full object-cover" />
+                    <span className="absolute bottom-1 right-2 rounded bg-black/70 px-2 py-0.5 text-[10px] text-emerald-400 font-semibold">
+                      Photo Ready
+                    </span>
+                  </div>
+                )}
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">
                     Embedded Video URL (Optional YouTube)
@@ -672,9 +837,7 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
                     className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Reading Time</label>
                   <input
@@ -685,17 +848,17 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
                     className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Tags (Comma-separated)</label>
-                  <input
-                    type="text"
-                    value={newTags}
-                    onChange={(e) => setNewTags(e.target.value)}
-                    placeholder="Culture, Heritage, Youth"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
-                  />
-                </div>
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Tags (Comma-separated)</label>
+                <input
+                  type="text"
+                  value={newTags}
+                  onChange={(e) => setNewTags(e.target.value)}
+                  placeholder="Culture, Heritage, Youth"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                />
               </div>
 
               <div>
@@ -739,6 +902,239 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
                   className="rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-5 py-2 font-bold text-slate-950 shadow-md hover:from-amber-500 hover:to-amber-400 cursor-pointer"
                 >
                   Publish Article
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Edit Article Modal */}
+      {isAdmin && editingArticle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-amber-500/40 bg-[#0c1424] p-6 sm:p-8 shadow-2xl text-slate-200 scrollbar-thin">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+              <h3 className="font-cinzel text-lg font-bold text-white flex items-center gap-2">
+                <Edit3 className="h-5 w-5 text-amber-400" />
+                <span>Edit Article, Photo & Content (Admin)</span>
+              </h3>
+              <button
+                onClick={() => setEditingArticle(null)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditArticle} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  Article Heading / Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  Russian Title
+                </label>
+                <input
+                  type="text"
+                  value={editTitleRu}
+                  onChange={(e) => setEditTitleRu(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  Subheading / Kicker
+                </label>
+                <input
+                  type="text"
+                  value={editHeading}
+                  onChange={(e) => setEditHeading(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Category *</label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  >
+                    <option value="Cultural Diplomacy">Cultural Diplomacy</option>
+                    <option value="Archaeology & History">Archaeology & History</option>
+                    <option value="Literature & Philosophy">Literature & Philosophy</option>
+                    <option value="Heroism & Memory">Heroism & Memory</option>
+                    <option value="Youth & Education">Youth & Education</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Author Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editAuthor}
+                    onChange={(e) => setEditAuthor(e.target.value)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Cover Photo: URL or Device Upload */}
+              <div className="space-y-1.5">
+                <label className="block text-slate-300 font-semibold">
+                  Article Photo * (Edit Image URL or Upload New Photo from Device/Phone)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={editImage}
+                    onChange={(e) => setEditImage(e.target.value)}
+                    placeholder="https://... or choose photo"
+                    className="flex-1 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white placeholder-slate-500"
+                  />
+                  <label className="flex items-center gap-1.5 rounded-xl border border-amber-500/50 bg-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/30 cursor-pointer transition-colors shrink-0">
+                    <Upload className="h-4 w-4" />
+                    <span>Upload Photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            const dataUrl = await readFileAsDataUrl(file);
+                            setEditImage(dataUrl);
+                          } catch (err: any) {
+                            alert(err?.message || 'Failed to read image');
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+                {editImage && (
+                  <div className="relative mt-2 h-36 w-full rounded-xl overflow-hidden border border-slate-700">
+                    <img src={editImage} alt="Cover preview" className="h-full w-full object-cover" />
+                    <span className="absolute bottom-1 right-2 rounded bg-black/70 px-2 py-0.5 text-[10px] text-emerald-400 font-semibold">
+                      New Photo Preview
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    Embedded Video URL (Optional)
+                  </label>
+                  <input
+                    type="url"
+                    value={editVideoUrl}
+                    onChange={(e) => setEditVideoUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/embed/..."
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Reading Time</label>
+                  <input
+                    type="text"
+                    value={editReadTime}
+                    onChange={(e) => setEditReadTime(e.target.value)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Tags (Comma-separated)</label>
+                <input
+                  type="text"
+                  value={editTags}
+                  onChange={(e) => setEditTags(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  Article Excerpt / Abstract *
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={editExcerpt}
+                  onChange={(e) => setEditExcerpt(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  Russian Excerpt (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={editExcerptRu}
+                  onChange={(e) => setEditExcerptRu(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  Full Article Body (English) *
+                </label>
+                <textarea
+                  required
+                  rows={7}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white font-serif-culture text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  Full Article Body (Russian, Optional)
+                </label>
+                <textarea
+                  rows={6}
+                  value={editContentRu}
+                  onChange={(e) => setEditContentRu(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white font-serif-culture text-xs"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingArticle(null)}
+                  className="rounded-xl px-4 py-2 text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 px-6 py-2.5 font-bold text-slate-950 shadow-md hover:from-amber-500 hover:to-orange-400 cursor-pointer"
+                >
+                  Save Article & Photo Edits
                 </button>
               </div>
             </form>

@@ -87,16 +87,17 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                   Role: <span className="font-mono text-emerald-300 font-bold">Authorized Site Administrator</span>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  You have full privileges to add/delete opportunities and videos across the site. Normal visitors will not see these editing controls.
+                  You have full administrative privileges to edit articles, replace photos (via URL or direct upload from your device/phone), edit heroic chronicles, archaeological sites, regional heritage, and bilateral opportunities while using the site live on the net.
                 </p>
               </div>
 
               <div className="space-y-1.5 text-xs text-slate-400 border border-slate-800 rounded-xl p-3 bg-slate-900/50">
                 <span className="font-bold text-slate-300 block mb-1">Active Admin Privileges:</span>
-                <p>• Write & publish articles with photos and videos in Articles & Blogs</p>
-                <p>• Add & delete heroic chronicles in Memory of Victory (Память победы)</p>
-                <p>• Add & delete bilateral fellowships, grants, and opportunities</p>
-                <p>• Add & delete documentary videos in the Heritage portal</p>
+                <p>• <strong>Articles:</strong> Edit articles, text, and photos (with direct device upload) + write new articles</p>
+                <p>• <strong>Memory of Victory:</strong> Edit heroic chronicles, deeds, quotes, and photos + add new records</p>
+                <p>• <strong>Archaeology:</strong> Edit archaeological sites, coordinates, relics, and excavation photos</p>
+                <p>• <strong>Heritage & Regions:</strong> Edit regional descriptions, monuments, videos, and photos</p>
+                <p>• <strong>Opportunities & Videos:</strong> Manage bilateral fellowships, scholarships, and video archives</p>
               </div>
 
               <div className="flex items-center justify-between pt-2">

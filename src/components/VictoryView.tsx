@@ -21,7 +21,10 @@ import {
   BookOpen,
   Share2,
   Check,
+  Edit3,
+  Upload,
 } from 'lucide-react';
+import { readFileAsDataUrl } from '../utils/imageUpload';
 
 interface VictoryViewProps {
   currentLang: Language;
@@ -140,6 +143,47 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
     setNewQuote('');
     setNewImage('');
     setNewBadge('');
+  };
+
+  // Editing story state
+  const [editingStory, setEditingStory] = useState<HeroicStory | null>(null);
+
+  const handleStartEditStory = (story: HeroicStory, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingStory({ ...story });
+  };
+
+  const handleSaveEditStory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStory) return;
+
+    setStories((prev) => {
+      const updated = prev.map((s) => (s.id === editingStory.id ? editingStory : s));
+      try {
+        localStorage.setItem('sri_custom_heroic_stories', JSON.stringify(updated));
+      } catch (err) {
+        console.warn('Failed to save edited heroic stories to localStorage', err);
+      }
+      return updated;
+    });
+
+    if (selectedStory?.id === editingStory.id) {
+      setSelectedStory(editingStory);
+    }
+    setEditingStory(null);
+  };
+
+  const handleStoryImageUpload = async (file: File, isEditing: boolean) => {
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      if (isEditing) {
+        setEditingStory((prev) => (prev ? { ...prev, image: dataUrl } : null));
+      } else {
+        setNewImage(dataUrl);
+      }
+    } catch (err) {
+      console.error('Failed to read image file', err);
+    }
   };
 
   const handleDeleteStory = (id: string, e: React.MouseEvent) => {
@@ -406,13 +450,23 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
                 </span>
 
                 {isAdmin && (
-                  <button
-                    onClick={(e) => handleDeleteStory(story.id, e)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                    title="Delete chronicle (Admin)"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={(e) => handleStartEditStory(story, e)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-lg transition-colors cursor-pointer"
+                      title="Edit chronicle & photo (Admin)"
+                    >
+                      <Edit3 className="h-3.5 w-3.5 text-amber-600" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteStory(story.id, e)}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      title="Delete chronicle (Admin)"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -518,7 +572,18 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
                 </div>
               )}
 
-              <div className="pt-2 flex justify-end">
+              <div className="pt-2 flex items-center justify-between gap-3">
+                {isAdmin ? (
+                  <button
+                    onClick={() => handleStartEditStory(selectedStory)}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-4 py-2 text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    <span>Edit Chronicle & Photo</span>
+                  </button>
+                ) : (
+                  <div />
+                )}
                 <button
                   onClick={() => setSelectedStory(null)}
                   className="rounded-xl bg-slate-800 hover:bg-slate-700 px-5 py-2 text-xs font-semibold text-white transition-colors cursor-pointer"
@@ -542,7 +607,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
               </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="text-slate-400 hover:text-white p-1 cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -551,7 +616,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
             <form onSubmit={handleCreateStory} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Hero Name *</label>
+                  <label className="block text-slate-300 font-semibold mb-1">Hero Name (English) *</label>
                   <input
                     type="text"
                     required
@@ -652,34 +717,42 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Historical Quote (Optional)</label>
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Photo / Emblem (URL or Upload from Device)</label>
+                <div className="flex gap-2 items-center">
                   <input
                     type="text"
-                    value={newQuote}
-                    onChange={(e) => setNewQuote(e.target.value)}
-                    placeholder="e.g. Whoever comes with a sword..."
-                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Photo / Emblem URL</label>
-                  <input
-                    type="url"
                     value={newImage}
                     onChange={(e) => setNewImage(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                    placeholder="https://... or upload below"
+                    className="flex-1 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
                   />
+                  <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 cursor-pointer text-xs font-semibold">
+                    <Upload className="h-3.5 w-3.5 text-amber-400" />
+                    <span>Upload</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleStoryImageUpload(file, false);
+                      }}
+                    />
+                  </label>
                 </div>
+                {newImage && (
+                  <div className="mt-2 relative w-20 h-20 rounded-lg overflow-hidden border border-slate-700">
+                    <img src={newImage} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="rounded-xl px-4 py-2 text-slate-400 hover:text-white"
+                  className="rounded-xl px-4 py-2 text-slate-400 hover:text-white cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -688,6 +761,219 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
                   className="rounded-xl bg-gradient-to-r from-red-600 to-amber-600 px-5 py-2 font-bold text-white shadow-md hover:from-red-500 hover:to-amber-500 cursor-pointer"
                 >
                   Publish Chronicle
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Edit Heroic Story Modal */}
+      {isAdmin && editingStory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-amber-500/40 bg-[#0c1424] p-6 sm:p-8 shadow-2xl text-slate-200 scrollbar-thin">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+              <h3 className="font-cinzel text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <Edit3 className="h-5 w-5 text-amber-400" />
+                <span>Edit Heroic Chronicle & Photo (Admin)</span>
+              </h3>
+              <button
+                onClick={() => setEditingStory(null)}
+                className="text-slate-400 hover:text-white p-1 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditStory} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Hero Name (English) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingStory.heroName}
+                    onChange={(e) => setEditingStory({ ...editingStory, heroName: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Hero Name (Russian)</label>
+                  <input
+                    type="text"
+                    value={editingStory.heroNameRu || ''}
+                    onChange={(e) => setEditingStory({ ...editingStory, heroNameRu: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">War / Battle Name (English) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingStory.warName}
+                    onChange={(e) => setEditingStory({ ...editingStory, warName: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">War / Battle Name (Russian)</label>
+                  <input
+                    type="text"
+                    value={editingStory.warNameRu || ''}
+                    onChange={(e) => setEditingStory({ ...editingStory, warNameRu: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Epoch / Period *</label>
+                  <select
+                    value={editingStory.epoch}
+                    onChange={(e) => setEditingStory({ ...editingStory, epoch: e.target.value as WarEpoch })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  >
+                    <option value="kievan-rus">Kievan Rus & Medieval (1242–1380)</option>
+                    <option value="time-of-troubles">Time of Troubles (1612)</option>
+                    <option value="peasant-uprisings">Peasant Uprisings (1670–1775)</option>
+                    <option value="napoleonic-1812">Patriotic War of 1812 (Napoleon)</option>
+                    <option value="crimean-war">Crimean War (1853–1856)</option>
+                    <option value="ww1">World War I (1914–1918)</option>
+                    <option value="civil-war">Civil War (1917–1922)</option>
+                    <option value="ww2-great-patriotic">Great Patriotic War (WWII 1941–1945)</option>
+                    <option value="modern-valour">Modern Valour (Till Today)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Rank / Role</label>
+                  <input
+                    type="text"
+                    value={editingStory.roleOrRank}
+                    onChange={(e) => setEditingStory({ ...editingStory, roleOrRank: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Dates / Year</label>
+                  <input
+                    type="text"
+                    value={editingStory.dates}
+                    onChange={(e) => setEditingStory({ ...editingStory, dates: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Battle Location</label>
+                  <input
+                    type="text"
+                    value={editingStory.location}
+                    onChange={(e) => setEditingStory({ ...editingStory, location: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Heroic Action / Sacrifice *</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={editingStory.heroAction}
+                  onChange={(e) => setEditingStory({ ...editingStory, heroAction: e.target.value })}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Full Chronicle / Story *</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={editingStory.story}
+                  onChange={(e) => setEditingStory({ ...editingStory, story: e.target.value })}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Historical Quote</label>
+                  <input
+                    type="text"
+                    value={editingStory.quote || ''}
+                    onChange={(e) => setEditingStory({ ...editingStory, quote: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Honor Badge / Label</label>
+                  <input
+                    type="text"
+                    value={editingStory.badge || ''}
+                    onChange={(e) => setEditingStory({ ...editingStory, badge: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Photo Editing & Upload */}
+              <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 space-y-3">
+                <label className="block text-slate-200 font-semibold">Hero Photo / Memorial Image</label>
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  {editingStory.image && (
+                    <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-amber-500/40 shrink-0 shadow">
+                      <img src={editingStory.image} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="flex-1 w-full space-y-2">
+                    <input
+                      type="text"
+                      value={editingStory.image}
+                      onChange={(e) => setEditingStory({ ...editingStory, image: e.target.value })}
+                      placeholder="Image URL (https://...)"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white text-xs"
+                    />
+                    <div className="flex items-center gap-2">
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold cursor-pointer transition-colors">
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>Upload Photo from Device</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleStoryImageUpload(file, true);
+                          }}
+                        />
+                      </label>
+                      <span className="text-[11px] text-slate-400">JPG, PNG, WebP supported</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingStory(null)}
+                  className="rounded-xl px-4 py-2 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-gradient-to-r from-amber-500 to-red-600 px-6 py-2.5 font-bold text-white shadow-lg hover:from-amber-400 hover:to-red-500 cursor-pointer"
+                >
+                  Save Chronicle Changes
                 </button>
               </div>
             </form>
