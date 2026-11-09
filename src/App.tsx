@@ -420,7 +420,7 @@ export default function App() {
 
           {activeSection === 'connections' && <ConnectionsView currentLang={currentLang} />}
 
-          {activeSection === 'literature' && <LiteratureView currentLang={currentLang} />}
+          {activeSection === 'literature' && <LiteratureView currentLang={currentLang} isAdmin={isAdmin} />}
 
           {activeSection === 'games' && <GamesView currentLang={currentLang} />}
 
