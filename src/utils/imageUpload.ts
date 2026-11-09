@@ -4,8 +4,8 @@
  */
 export function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    if (!file.type.startsWith('image/')) {
-      reject(new Error('Please select a valid image file.'));
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      reject(new Error('Please select a valid image or video file.'));
       return;
     }
     const reader = new FileReader();
@@ -13,7 +13,7 @@ export function readFileAsDataUrl(file: File): Promise<string> {
       if (typeof reader.result === 'string') {
         resolve(reader.result);
       } else {
-        reject(new Error('Failed to convert image to data URL.'));
+        reject(new Error('Failed to convert file to data URL.'));
       }
     };
     reader.onerror = (err) => reject(err);

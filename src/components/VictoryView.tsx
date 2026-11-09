@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { HeroicStory, WarEpoch, Language } from '../types';
-import { heroicStoriesData } from '../data/victoryData';
+import { HeroicStory, WarEpoch, Language, VictoryQuote } from '../types';
+import { heroicStoriesData, victoryQuotesData } from '../data/victoryData';
 import { translations } from '../i18n/translations';
 import {
   Flame,
@@ -14,6 +14,7 @@ import {
   Clock,
   Sparkles,
   ChevronRight,
+  ChevronLeft,
   X,
   PlusCircle,
   Trash2,
@@ -23,6 +24,10 @@ import {
   Check,
   Edit3,
   Upload,
+  Play,
+  Film,
+  Video,
+  Languages,
 } from 'lucide-react';
 import { readFileAsDataUrl } from '../utils/imageUpload';
 
@@ -40,7 +45,17 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const defaultMap = new Map(heroicStoriesData.map((d) => [d.id, d]));
+          // Merge curated default images if the saved item has no image or an old legacy placeholder
+          return parsed.map((item: HeroicStory) => {
+            const def = defaultMap.get(item.id);
+            if (def && (!item.image || item.image.includes('photo-1544716278-ca5e3f4abd8c') || item.image.includes('photo-1518709268805-4e9042af9f23') || item.image.includes('photo-1509198397868-475647b2a1e5'))) {
+              return { ...item, image: def.image };
+            }
+            return item;
+          });
+        }
       } catch (e) {
         console.warn('Failed to parse saved heroic stories', e);
       }
@@ -70,6 +85,127 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
     } catch (e) {
       console.warn('Clipboard write failed', e);
     }
+  };
+
+  // Victory Quotes state with localStorage persistence
+  const [victoryQuotes, setVictoryQuotes] = useState<VictoryQuote[]>(() => {
+    const saved = localStorage.getItem('sri_victory_quotes');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.warn('Failed to parse saved victory quotes', e);
+      }
+    }
+    return victoryQuotesData;
+  });
+
+  const [activeQuoteIndex, setActiveQuoteIndex] = useState<number>(0);
+  const [quoteLangTab, setQuoteLangTab] = useState<'all' | 'en' | 'ru' | 'hi'>('all');
+  const [editingQuote, setEditingQuote] = useState<VictoryQuote | null>(null);
+  const [isEditQuoteModalOpen, setIsEditQuoteModalOpen] = useState<boolean>(false);
+  const [showGalleryInfo, setShowGalleryInfo] = useState<boolean>(false);
+
+  // Sync active quote when an epoch filter is selected
+  useEffect(() => {
+    if (selectedEpoch !== 'all') {
+      const matchIdx = victoryQuotes.findIndex((q) => q.epoch === selectedEpoch);
+      if (matchIdx !== -1) {
+        setActiveQuoteIndex(matchIdx);
+      }
+    }
+  }, [selectedEpoch, victoryQuotes]);
+
+  const activeQuote = victoryQuotes[activeQuoteIndex] || victoryQuotes[0];
+
+  const handleNextQuote = () => {
+    setActiveQuoteIndex((prev) => (prev + 1) % victoryQuotes.length);
+  };
+
+  const handlePrevQuote = () => {
+    setActiveQuoteIndex((prev) => (prev - 1 + victoryQuotes.length) % victoryQuotes.length);
+  };
+
+  const handleStartEditQuote = (quote: VictoryQuote) => {
+    setEditingQuote({ ...quote });
+    setIsEditQuoteModalOpen(true);
+  };
+
+  const handleSaveEditQuote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingQuote) return;
+    setVictoryQuotes((prev) => {
+      const updated = prev.map((q) => (q.id === editingQuote.id ? editingQuote : q));
+      try {
+        localStorage.setItem('sri_victory_quotes', JSON.stringify(updated));
+      } catch (err) {
+        console.warn('Failed to save edited quotes to localStorage', err);
+      }
+      return updated;
+    });
+    setIsEditQuoteModalOpen(false);
+    setEditingQuote(null);
+  };
+
+  const handleQuoteMediaUpload = async (file: File) => {
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      if (editingQuote) {
+        if (file.type.startsWith('video/')) {
+          setEditingQuote({ ...editingQuote, videoUrl: dataUrl });
+        } else {
+          setEditingQuote({ ...editingQuote, portraitUrl: dataUrl });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to read media file', err);
+    }
+  };
+
+  // Video renderer supporting YouTube embed + direct MP4/WebM + Gallery Base64 data URLs
+  const renderVideoPlayer = (videoUrl?: string, title?: string) => {
+    if (!videoUrl) {
+      return (
+        <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-950/90 border border-slate-800 flex flex-col items-center justify-center text-slate-400 p-6 text-center space-y-2">
+          <Film className="h-10 w-10 text-amber-500/70" />
+          <p className="text-xs text-slate-300 font-semibold">{title || 'Historical Chronicle Video'}</p>
+          <p className="text-[11px] text-slate-500">Video can be added via the Edit button below</p>
+        </div>
+      );
+    }
+
+    // Check if YouTube URL
+    const ytMatch = videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+    if (ytMatch) {
+      const embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+      return (
+        <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-red-500/40">
+          <iframe
+            src={embedUrl}
+            title={title || 'Victory Chronicle Video'}
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      );
+    }
+
+    // Direct MP4 / WebM or Base64 uploaded video from device gallery
+    return (
+      <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-red-500/40 flex items-center justify-center">
+        <video
+          src={videoUrl}
+          controls
+          playsInline
+          preload="metadata"
+          className="w-full h-full object-contain rounded-2xl"
+        >
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    );
   };
 
   // Admin Add Modal State
@@ -183,6 +319,15 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
       }
     } catch (err) {
       console.error('Failed to read image file', err);
+    }
+  };
+
+  const handleStoryVideoUpload = async (file: File) => {
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setEditingStory((prev) => (prev ? { ...prev, videoUrl: dataUrl } : null));
+    } catch (err) {
+      console.error('Failed to read video file', err);
     }
   };
 
@@ -377,6 +522,314 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
         </div>
       </div>
 
+      {/* =========================================================================
+          VICTORY QUOTE & HISTORICAL VIDEO CARD
+          Inspirational quotes from historic figures with trilingual translations
+          (English, Russian, Hindi) and embedded documentary/memorial videos.
+          ========================================================================= */}
+      <div className="w-full relative overflow-hidden rounded-3xl border-2 border-amber-500/50 bg-gradient-to-br from-[#0c1424] via-[#111c33] to-[#1c0f1a] p-5 sm:p-8 shadow-2xl text-slate-200">
+        {/* Subtle decorative background watermark */}
+        <div className="absolute -top-12 -right-12 h-64 w-64 rounded-full bg-red-600/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-12 -left-12 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+
+        {/* Card Header & Controls */}
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-red-600/30 to-amber-600/30 border border-amber-500/40 text-[11px] font-bold uppercase tracking-wider text-amber-300">
+              <Flame className="h-3.5 w-3.5 text-red-400 animate-pulse" />
+              <span>Victory Quote • Цитата ратной славы • विजय का अमर उद्घोष</span>
+              <Medal className="h-3.5 w-3.5 text-amber-400" />
+            </div>
+            <h2 className="font-cinzel text-xl sm:text-2xl font-bold text-white tracking-wide">
+              {currentLang === 'ru'
+                ? 'Слова непоколебимого духа и воинской чести'
+                : currentLang === 'hi'
+                ? 'ऐतिहासिक सेनानायकों के अमर विचार एवं शौर्य गाथा'
+                : 'Inspirational Words of Courage & Sovereign Fortitude'}
+            </h2>
+            <p className="text-xs text-slate-400">
+              {currentLang === 'ru'
+                ? 'Цитаты полководцев и защитников Отечества с переводами на 3 языка и документальной хроникой'
+                : currentLang === 'hi'
+                ? 'ऐतिहासिक हस्तियों के प्रेरक विचार अंग्रेजी, रूसी और हिन्दी में एवं ऐतिहासिक वीडियो'
+                : 'Iconic quotes from commanders and martyrs in English, Russian, and Hindi with documentary video chronicles'}
+            </p>
+          </div>
+
+          {/* Quick Quote Navigation */}
+          <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+            <span className="text-xs font-semibold text-slate-400 hidden sm:inline mr-1">
+              {activeQuoteIndex + 1} / {victoryQuotes.length}
+            </span>
+            <button
+              onClick={handlePrevQuote}
+              className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-amber-300 border border-slate-700 hover:border-amber-500/50 transition-all cursor-pointer shadow"
+              title="Previous Quote"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleNextQuote}
+              className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-amber-300 border border-slate-700 hover:border-amber-500/50 transition-all cursor-pointer shadow"
+              title="Next Quote"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            {isAdmin && (
+              <button
+                onClick={() => handleStartEditQuote(activeQuote)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold cursor-pointer transition-all ml-1"
+                title="Edit Quote, Translations & Video (Admin)"
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+                <span>Edit Quote / Video</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Historic Figure Selector Pills */}
+        <div className="relative z-10 flex items-center gap-2 overflow-x-auto py-3 scrollbar-thin text-xs">
+          <span className="text-[11px] font-bold text-slate-400 shrink-0 uppercase tracking-wider">
+            {currentLang === 'ru' ? 'Герои:' : currentLang === 'hi' ? 'नायक:' : 'Select Figure:'}
+          </span>
+          {victoryQuotes.map((vq, idx) => (
+            <button
+              key={vq.id}
+              onClick={() => setActiveQuoteIndex(idx)}
+              className={`shrink-0 px-3 py-1 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
+                idx === activeQuoteIndex
+                  ? 'bg-gradient-to-r from-red-600 to-amber-600 text-white font-bold border-amber-400 shadow-md'
+                  : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border-slate-800'
+              }`}
+            >
+              {currentLang === 'ru' ? vq.figureNameRu : currentLang === 'hi' ? vq.figureNameHi : vq.figureName} ({vq.yearOrDate})
+            </button>
+          ))}
+        </div>
+
+        {/* Main Content Grid: Quote details + Video Theater */}
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch pt-2">
+          {/* Left Column: Historic Figure & Trilingual Quotes (7 cols) */}
+          <div className="lg:col-span-7 flex flex-col justify-between space-y-4 bg-slate-900/80 rounded-2xl p-5 sm:p-6 border border-slate-800 shadow-inner">
+            <div className="space-y-4">
+              {/* Figure Profile & Epoch Info */}
+              <div className="flex items-center gap-3.5 border-b border-slate-800 pb-4">
+                <div className="relative h-14 w-14 sm:h-16 sm:w-16 rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-lg shrink-0 bg-slate-950">
+                  <img
+                    src={activeQuote.portraitUrl}
+                    alt={activeQuote.figureName}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=400&q=80';
+                    }}
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-cinzel text-lg sm:text-xl font-bold text-white truncate">
+                      {currentLang === 'ru'
+                        ? activeQuote.figureNameRu
+                        : currentLang === 'hi'
+                        ? activeQuote.figureNameHi
+                        : activeQuote.figureName}
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-950 text-red-300 border border-red-800 shrink-0">
+                      {activeQuote.yearOrDate}
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-300 font-semibold mt-0.5">
+                    {currentLang === 'ru'
+                      ? activeQuote.figureTitleRu
+                      : currentLang === 'hi'
+                      ? activeQuote.figureTitleHi
+                      : activeQuote.figureTitle}
+                  </p>
+                  <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-1">
+                    <Shield className="h-3 w-3 text-red-400 shrink-0" />
+                    <span className="truncate">
+                      {currentLang === 'ru'
+                        ? activeQuote.warOrEpochRu
+                        : currentLang === 'hi'
+                        ? activeQuote.warOrEpochHi
+                        : activeQuote.warOrEpoch}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Language Selector Tabs */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400">
+                  <Languages className="h-3.5 w-3.5 text-amber-400" />
+                  <span>{currentLang === 'ru' ? 'Язык цитаты:' : currentLang === 'hi' ? 'भाषा विकल्प:' : 'Quote Translation:'}</span>
+                </div>
+                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                  <button
+                    onClick={() => setQuoteLangTab('all')}
+                    className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                      quoteLangTab === 'all'
+                        ? 'bg-amber-500 text-slate-950 shadow font-bold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    All 3 (Все 3)
+                  </button>
+                  <button
+                    onClick={() => setQuoteLangTab('en')}
+                    className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                      quoteLangTab === 'en'
+                        ? 'bg-amber-500 text-slate-950 shadow font-bold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    🇬🇧 EN
+                  </button>
+                  <button
+                    onClick={() => setQuoteLangTab('ru')}
+                    className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                      quoteLangTab === 'ru'
+                        ? 'bg-amber-500 text-slate-950 shadow font-bold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    🇷🇺 RU
+                  </button>
+                  <button
+                    onClick={() => setQuoteLangTab('hi')}
+                    className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                      quoteLangTab === 'hi'
+                        ? 'bg-amber-500 text-slate-950 shadow font-bold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    🇮🇳 HI
+                  </button>
+                </div>
+              </div>
+
+              {/* Trilingual Quotes Render */}
+              <div className="space-y-3">
+                {(quoteLangTab === 'all' || quoteLangTab === 'en') && (
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3.5 text-xs sm:text-sm text-slate-200 relative pl-4 border-l-4 border-l-amber-500">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-1">
+                      <span>🇬🇧 English Translation</span>
+                    </div>
+                    <p className="font-serif-culture italic text-slate-100 leading-relaxed">
+                      "{activeQuote.quote}"
+                    </p>
+                  </div>
+                )}
+
+                {(quoteLangTab === 'all' || quoteLangTab === 'ru') && (
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3.5 text-xs sm:text-sm text-slate-200 relative pl-4 border-l-4 border-l-red-500">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-red-400 mb-1">
+                      <span>🇷🇺 Русский оригинал</span>
+                    </div>
+                    <p className="font-serif-culture italic text-slate-100 leading-relaxed">
+                      "{activeQuote.quoteRu}"
+                    </p>
+                  </div>
+                )}
+
+                {(quoteLangTab === 'all' || quoteLangTab === 'hi') && (
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3.5 text-xs sm:text-sm text-slate-200 relative pl-4 border-l-4 border-l-orange-500">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-orange-400 mb-1">
+                      <span>🇮🇳 हिन्दी अनुवाद</span>
+                    </div>
+                    <p className="font-serif-culture italic text-slate-100 leading-relaxed">
+                      "{activeQuote.quoteHi}"
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Historical Significance Note */}
+            {activeQuote.significance && (
+              <div className="border-t border-slate-800 pt-3 text-[11px] text-slate-400 flex items-start gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong>
+                    {currentLang === 'ru'
+                      ? 'Историческое значение: '
+                      : currentLang === 'hi'
+                      ? 'ऐतिहासिक महत्व: '
+                      : 'Historical Significance: '}
+                  </strong>
+                  {currentLang === 'ru'
+                    ? activeQuote.significanceRu || activeQuote.significance
+                    : currentLang === 'hi'
+                    ? activeQuote.significanceHi || activeQuote.significance
+                    : activeQuote.significance}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Historical Chronicle Video Player (5 cols) */}
+          <div className="lg:col-span-5 flex flex-col justify-between space-y-3 bg-slate-900/80 rounded-2xl p-5 border border-slate-800 shadow-inner">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                  <Film className="h-4 w-4 text-red-500" />
+                  <span>
+                    {currentLang === 'ru'
+                      ? 'Видеохроника подвига'
+                      : currentLang === 'hi'
+                      ? 'ऐतिहासिक वीडियो व वृत्तचित्र'
+                      : 'Historical Video Chronicle'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+                  {activeQuote.videoUrl ? 'HD Video' : 'Documentary'}
+                </span>
+              </div>
+
+              {/* Playable Video Embed or Player */}
+              <div className="w-full">
+                {renderVideoPlayer(activeQuote.videoUrl, activeQuote.videoTitle)}
+              </div>
+
+              <div className="space-y-1">
+                <h4 className="text-xs font-bold text-slate-200">
+                  {activeQuote.videoTitle || 'Historical Chronicle & Battle Memorial'}
+                </h4>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  {currentLang === 'ru'
+                    ? 'Документальные кадры и хроника ратной славы. Вы можете отредактировать ссылку или загрузить видео из своей галереи.'
+                    : currentLang === 'hi'
+                    ? 'ऐतिहासिक वृत्तचित्र एवं शौर्य गाथा। आप लिंक बदल सकते हैं अथवा गैलरी से वीडियो अपलोड कर सकते हैं।'
+                    : 'Documentary footage & memorial tribute. You can edit this video or upload clips directly from your gallery.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Gallery Upload Info Explainer Banner */}
+            <div className="pt-2 border-t border-slate-800">
+              <button
+                onClick={() => setShowGalleryInfo(!showGalleryInfo)}
+                className="text-[11px] font-semibold text-amber-400/90 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <span>ℹ️ How gallery uploads work on this site</span>
+                <ChevronRight className={`h-3 w-3 transition-transform ${showGalleryInfo ? 'rotate-90' : ''}`} />
+              </button>
+
+              {showGalleryInfo && (
+                <div className="mt-2 p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-300 leading-relaxed space-y-1.5 animate-fade-in">
+                  <p>
+                    <strong>How your gallery uploads are handled:</strong> When you pick a photo or video from your device gallery, the browser’s <code className="text-amber-300">FileReader</code> API reads the file locally and converts it into a self-contained <em>Base64 data URL</em>.
+                  </p>
+                  <p>
+                    It is immediately saved to your browser's <code className="text-amber-300">localStorage</code>. When the page renders, the site feeds that exact data URL into the HTML5 <code className="text-amber-300">&lt;img&gt;</code> or <code className="text-amber-300">&lt;video&gt;</code> player without requiring third-party cloud hosting!
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Heroic Chronicles Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 w-full">
         {filteredStories.map((story) => {
@@ -389,18 +842,45 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
               {/* Top Accent Ribbon */}
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 via-amber-500 to-red-600" />
 
-              <div className="space-y-4">
-                {/* War Header Badge */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="rounded-full bg-red-100 px-3 py-1 text-[11px] font-bold text-red-900 border border-red-200 uppercase tracking-wide truncate max-w-[200px]">
+              {/* Hero & War Topic Photo Container */}
+              <div className="relative h-48 sm:h-52 w-full overflow-hidden rounded-2xl bg-slate-900 border border-slate-100 shadow-inner -mt-1 mb-3">
+                <img
+                  src={story.image || 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80'}
+                  alt={currentLang === 'ru' ? story.heroNameRu : story.heroName}
+                  className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80';
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+
+                {/* Overlaid Badges */}
+                <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
+                  <span className="rounded-full bg-red-600/90 backdrop-blur-md px-3 py-1 text-[10px] font-bold text-white shadow-md uppercase tracking-wider truncate max-w-[200px]">
                     {currentLang === 'ru' ? story.warNameRu : story.warName}
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 shrink-0">
-                    <Calendar className="h-3 w-3 text-red-600" />
+                  <span className="rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[10px] font-semibold text-amber-300 shadow-md flex items-center gap-1 shrink-0">
+                    <Calendar className="h-2.5 w-2.5 text-amber-400" />
                     <span>{story.dates}</span>
                   </span>
                 </div>
 
+                {/* Bottom Photo Overlay */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-amber-300 bg-black/70 backdrop-blur-md px-2.5 py-0.5 rounded-lg border border-amber-500/30">
+                    <Medal className="h-3 w-3 text-amber-400" />
+                    <span className="truncate max-w-[170px]">{story.badge || (currentLang === 'ru' ? 'Герой Отечества' : 'Heroic Defender')}</span>
+                  </span>
+                  {story.solidarityNote && (
+                    <span className="text-[10px] bg-red-700/90 text-white font-bold px-2 py-0.5 rounded-md shadow flex items-center gap-1">
+                      <span>🇷🇺</span><span>🤝</span><span>🇮🇳</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
                 {/* Hero Name & Rank */}
                 <div>
                   <h3 className="font-cinzel text-xl font-bold text-slate-900 group-hover:text-red-700 transition-colors">
@@ -495,6 +975,30 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
             </button>
 
             <div className="space-y-6">
+              {/* Hero Memorial Photo Banner */}
+              <div className="relative h-64 sm:h-72 w-full overflow-hidden rounded-2xl border border-red-500/40 bg-slate-950 shadow-2xl">
+                <img
+                  src={selectedStory.image || 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80'}
+                  alt={currentLang === 'ru' ? selectedStory.heroNameRu : selectedStory.heroName}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80';
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0d1424] via-black/30 to-transparent" />
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-amber-300 bg-black/75 backdrop-blur-md px-3 py-1.5 rounded-xl border border-amber-500/30 flex items-center gap-1.5 shadow-lg">
+                    <Shield className="h-3.5 w-3.5 text-amber-400" />
+                    <span>{selectedStory.badge || 'Heroic Chronicle'}</span>
+                  </span>
+                  {selectedStory.solidarityNote && (
+                    <span className="text-xs bg-red-600/90 text-white font-bold px-3 py-1.5 rounded-xl backdrop-blur-md shadow-lg border border-red-400/40">
+                      🇷🇺 🤝 🇮🇳 {currentLang === 'ru' ? 'Братская солидарность' : 'Brotherly Solidarity'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Header Badge */}
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400">
                 <Medal className="h-4 w-4 text-amber-400" />
@@ -555,10 +1059,58 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
                 </p>
               </div>
 
-              {/* Quotation */}
-              {selectedStory.quote && (
-                <div className="rounded-2xl border-l-4 border-amber-500 bg-amber-500/10 p-4 italic text-xs sm:text-sm text-amber-200">
-                  "{currentLang === 'ru' ? selectedStory.quoteRu || selectedStory.quote : selectedStory.quote}"
+              {/* Historical Quotation & Historic Words (Trilingual) */}
+              {(selectedStory.quote || selectedStory.quoteRu || selectedStory.quoteHi) && (
+                <div className="rounded-2xl border-l-4 border-amber-500 bg-gradient-to-r from-amber-500/15 via-red-950/20 to-transparent p-4 sm:p-5 text-xs sm:text-sm text-amber-200 space-y-2.5 shadow-inner">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400">
+                    <Quote className="h-4 w-4 text-amber-400" />
+                    <span>Historical Words & Testament</span>
+                  </div>
+                  {selectedStory.quote && (
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400/80">English</span>
+                      <p className="italic text-slate-100 font-serif-culture">
+                        "{selectedStory.quote}"
+                      </p>
+                    </div>
+                  )}
+                  {selectedStory.quoteRu && (
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300/80">Русский</span>
+                      <p className="italic text-amber-100/90 font-serif-culture">
+                        "{selectedStory.quoteRu}"
+                      </p>
+                    </div>
+                  )}
+                  {selectedStory.quoteHi && (
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400/80">हिन्दी</span>
+                      <p className="italic text-orange-100/90 font-serif-culture">
+                        "{selectedStory.quoteHi}"
+                      </p>
+                    </div>
+                  )}
+                  {selectedStory.quoteAuthor && (
+                    <p className="text-[11px] font-semibold text-amber-400 text-right mt-1">
+                      — {selectedStory.quoteAuthor}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Story Documentary Video */}
+              {selectedStory.videoUrl && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-amber-400">
+                    <span className="flex items-center gap-2">
+                      <Film className="h-4 w-4 text-amber-400" />
+                      <span>{selectedStory.videoTitle || (currentLang === 'ru' ? 'Историческая кинохроника' : 'Historical Video Chronicle')}</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 normal-case">Video Chronicle</span>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden border border-amber-500/30 bg-black/80 shadow-lg">
+                    {renderVideoPlayer(selectedStory.videoUrl, selectedStory.videoTitle || selectedStory.heroName)}
+                  </div>
                 </div>
               )}
 
@@ -903,24 +1455,126 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Historical Quote</label>
-                  <input
-                    type="text"
-                    value={editingStory.quote || ''}
-                    onChange={(e) => setEditingStory({ ...editingStory, quote: e.target.value })}
-                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
-                  />
+              {/* Historical Quotes & Words (Trilingual) */}
+              <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-amber-300 font-semibold flex items-center gap-1.5">
+                    <Quote className="h-4 w-4 text-amber-400" />
+                    <span>Historical Words & Quotes (Trilingual)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">EN / RU / HI</span>
                 </div>
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Honor Badge / Label</label>
-                  <input
-                    type="text"
-                    value={editingStory.badge || ''}
-                    onChange={(e) => setEditingStory({ ...editingStory, badge: e.target.value })}
-                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
-                  />
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-slate-300 text-[11px] mb-1">Quote (English)</label>
+                    <input
+                      type="text"
+                      value={editingStory.quote || ''}
+                      onChange={(e) => setEditingStory({ ...editingStory, quote: e.target.value })}
+                      placeholder="e.g. Great Russia is behind us..."
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-300 text-[11px] mb-1">Quote (Russian - Русский)</label>
+                    <input
+                      type="text"
+                      value={editingStory.quoteRu || ''}
+                      onChange={(e) => setEditingStory({ ...editingStory, quoteRu: e.target.value })}
+                      placeholder="e.g. Велика Россия, а отступать некуда..."
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-300 text-[11px] mb-1">Quote (Hindi - हिन्दी)</label>
+                    <input
+                      type="text"
+                      value={editingStory.quoteHi || ''}
+                      onChange={(e) => setEditingStory({ ...editingStory, quoteHi: e.target.value })}
+                      placeholder="e.g. महान रूस हमारे पीछे है..."
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-300 text-[11px] mb-1">Quote Author / Speaker</label>
+                    <input
+                      type="text"
+                      value={editingStory.quoteAuthor || ''}
+                      onChange={(e) => setEditingStory({ ...editingStory, quoteAuthor: e.target.value })}
+                      placeholder="e.g. Vasily Klochkov"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-300 text-[11px] mb-1">Honor Badge / Label</label>
+                    <input
+                      type="text"
+                      value={editingStory.badge || ''}
+                      onChange={(e) => setEditingStory({ ...editingStory, badge: e.target.value })}
+                      placeholder="e.g. Hero of the Soviet Union"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Story Video Chronicle & Upload */}
+              <div className="rounded-2xl border border-amber-500/30 bg-slate-900/80 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-amber-300 font-semibold flex items-center gap-1.5">
+                    <Film className="h-4 w-4 text-amber-400" />
+                    <span>Story Video Chronicle / Film</span>
+                  </label>
+                  <span className="text-[10px] text-amber-400/80 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                    YouTube or Gallery Video
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-slate-400 text-[11px] mb-1">Video Title</label>
+                    <input
+                      type="text"
+                      value={editingStory.videoTitle || ''}
+                      onChange={(e) => setEditingStory({ ...editingStory, videoTitle: e.target.value })}
+                      placeholder="e.g. Heroic Stand of the Panfilov Division"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 text-[11px] mb-1">Video URL or YouTube Link</label>
+                    <input
+                      type="text"
+                      value={editingStory.videoUrl || ''}
+                      onChange={(e) => setEditingStory({ ...editingStory, videoUrl: e.target.value })}
+                      placeholder="https://www.youtube.com/watch?v=... or direct MP4 URL"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white text-xs"
+                    />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1 border-t border-slate-800">
+                    <label className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-semibold cursor-pointer shadow transition-all">
+                      <Upload className="h-3.5 w-3.5" />
+                      <span>Upload Video from Gallery</span>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleStoryVideoUpload(file);
+                        }}
+                      />
+                    </label>
+                    <span className="text-[11px] text-slate-400">
+                      Upload MP4 / WebM from your phone or PC
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -974,6 +1628,271 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
                   className="rounded-xl bg-gradient-to-r from-amber-500 to-red-600 px-6 py-2.5 font-bold text-white shadow-lg hover:from-amber-400 hover:to-red-500 cursor-pointer"
                 >
                   Save Chronicle Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Edit Victory Quote & Historical Video Modal */}
+      {isAdmin && isEditQuoteModalOpen && editingQuote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-amber-500/40 bg-[#0c1424] p-6 sm:p-8 shadow-2xl text-slate-200 scrollbar-thin">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+              <h3 className="font-cinzel text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <Quote className="h-5 w-5 text-amber-400" />
+                <span>Edit Victory Quote, Translations & Video (Admin)</span>
+              </h3>
+              <button
+                onClick={() => {
+                  setIsEditQuoteModalOpen(false);
+                  setEditingQuote(null);
+                }}
+                className="text-slate-400 hover:text-white p-1 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditQuote} className="space-y-4 text-xs">
+              {/* Figure Names across languages */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Figure Name (English) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingQuote.figureName}
+                    onChange={(e) => setEditingQuote({ ...editingQuote, figureName: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Figure Name (Russian)</label>
+                  <input
+                    type="text"
+                    value={editingQuote.figureNameRu || ''}
+                    onChange={(e) => setEditingQuote({ ...editingQuote, figureNameRu: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Figure Name (Hindi)</label>
+                  <input
+                    type="text"
+                    value={editingQuote.figureNameHi || ''}
+                    onChange={(e) => setEditingQuote({ ...editingQuote, figureNameHi: e.target.value })}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Title, War/Epoch & Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Title / Military Role</label>
+                  <input
+                    type="text"
+                    value={editingQuote.figureTitle || ''}
+                    onChange={(e) => setEditingQuote({ ...editingQuote, figureTitle: e.target.value })}
+                    placeholder="e.g. Grand Prince of Novgorod"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">War or Epoch</label>
+                  <input
+                    type="text"
+                    value={editingQuote.warOrEpoch || ''}
+                    onChange={(e) => setEditingQuote({ ...editingQuote, warOrEpoch: e.target.value })}
+                    placeholder="e.g. Battle on the Ice (1242)"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Year / Date</label>
+                  <input
+                    type="text"
+                    value={editingQuote.yearOrDate || ''}
+                    onChange={(e) => setEditingQuote({ ...editingQuote, yearOrDate: e.target.value })}
+                    placeholder="e.g. 1242 / 1945"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Quotes in 3 languages */}
+              <div>
+                <label className="block text-amber-300 font-semibold mb-1">
+                  🇬🇧 Victory Quote (English) *
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={editingQuote.quote}
+                  onChange={(e) => setEditingQuote({ ...editingQuote, quote: e.target.value })}
+                  placeholder="Inspirational quote in English..."
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-blue-300 font-semibold mb-1">
+                  🇷🇺 Victory Quote (Russian - Русский) *
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={editingQuote.quoteRu}
+                  onChange={(e) => setEditingQuote({ ...editingQuote, quoteRu: e.target.value })}
+                  placeholder="Цитата на русском языке..."
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-orange-300 font-semibold mb-1">
+                  🇮🇳 Victory Quote (Hindi - हिन्दी) *
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={editingQuote.quoteHi}
+                  onChange={(e) => setEditingQuote({ ...editingQuote, quoteHi: e.target.value })}
+                  placeholder="हिन्दी में विजय उद्धरण..."
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              {/* Historical Context / Significance */}
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Historical Context & Significance</label>
+                <textarea
+                  rows={2}
+                  value={editingQuote.significance || ''}
+                  onChange={(e) => setEditingQuote({ ...editingQuote, significance: e.target.value })}
+                  placeholder="The historical impact and moral weight of these immortal words..."
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white"
+                />
+              </div>
+
+              {/* Portrait Image & Upload */}
+              <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 space-y-3">
+                <label className="block text-slate-200 font-semibold">Hero / Historical Figure Portrait</label>
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  {editingQuote.portraitUrl && (
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-amber-500/40 shrink-0 shadow">
+                      <img src={editingQuote.portraitUrl} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="flex-1 w-full space-y-2">
+                    <input
+                      type="text"
+                      value={editingQuote.portraitUrl || ''}
+                      onChange={(e) => setEditingQuote({ ...editingQuote, portraitUrl: e.target.value })}
+                      placeholder="Portrait Image URL (https://...)"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white text-xs"
+                    />
+                    <div className="flex items-center gap-2">
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold cursor-pointer transition-colors">
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>Upload Portrait from Gallery</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleQuoteMediaUpload(file);
+                          }}
+                        />
+                      </label>
+                      <span className="text-[11px] text-slate-400">JPG, PNG, WebP supported</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Documentary Video Section & Upload */}
+              <div className="rounded-2xl border border-amber-500/30 bg-slate-900/80 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-amber-300 font-semibold flex items-center gap-1.5">
+                    <Film className="h-4 w-4 text-amber-400" />
+                    <span>Historical Documentary Video / Chronicle</span>
+                  </label>
+                  <span className="text-[10px] text-amber-400/80 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                    YouTube or Gallery Video
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-slate-400 text-[11px] mb-1">Video Title</label>
+                    <input
+                      type="text"
+                      value={editingQuote.videoTitle || ''}
+                      onChange={(e) => setEditingQuote({ ...editingQuote, videoTitle: e.target.value })}
+                      placeholder="e.g. Battle of Moscow 1941 - General Zhukov Historical Film"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 text-[11px] mb-1">Video URL or YouTube Link</label>
+                    <input
+                      type="text"
+                      value={editingQuote.videoUrl || ''}
+                      onChange={(e) => setEditingQuote({ ...editingQuote, videoUrl: e.target.value })}
+                      placeholder="https://www.youtube.com/watch?v=... or direct MP4 URL"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white text-xs"
+                    />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1 border-t border-slate-800">
+                    <label className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-semibold cursor-pointer shadow-md transition-all">
+                      <Upload className="h-3.5 w-3.5" />
+                      <span>Upload Video from Gallery</span>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleQuoteMediaUpload(file);
+                        }}
+                      />
+                    </label>
+                    <span className="text-[11px] text-slate-400">
+                      Upload MP4 / WebM directly from your phone or PC gallery
+                    </span>
+                  </div>
+
+                  {editingQuote.videoUrl && (
+                    <div className="mt-2 rounded-xl overflow-hidden border border-slate-800 bg-black max-h-40">
+                      {renderVideoPlayer(editingQuote.videoUrl, editingQuote.videoTitle || 'Preview')}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditQuoteModalOpen(false);
+                    setEditingQuote(null);
+                  }}
+                  className="rounded-xl px-4 py-2 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-gradient-to-r from-amber-500 to-red-600 px-6 py-2.5 font-bold text-white shadow-lg hover:from-amber-400 hover:to-red-500 cursor-pointer"
+                >
+                  Save Quote & Video
                 </button>
               </div>
             </form>

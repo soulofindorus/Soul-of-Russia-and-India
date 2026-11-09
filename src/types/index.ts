@@ -278,12 +278,42 @@ export interface HeroicStory {
   storyHi?: string;
   quote?: string;
   quoteRu?: string;
+  quoteHi?: string;
+  quoteAuthor?: string;
+  quoteAuthorRu?: string;
+  quoteAuthorHi?: string;
   image?: string;
+  videoUrl?: string;
+  videoTitle?: string;
   badge?: string;
   outcomeOrLegacy?: string;
   outcomeOrLegacyRu?: string;
   solidarityNote?: string;
   solidarityNoteRu?: string;
+}
+
+export interface VictoryQuote {
+  id: string;
+  figureName: string;
+  figureNameRu: string;
+  figureNameHi: string;
+  figureTitle: string;
+  figureTitleRu: string;
+  figureTitleHi: string;
+  quote: string;
+  quoteRu: string;
+  quoteHi: string;
+  warOrEpoch: string;
+  warOrEpochRu: string;
+  warOrEpochHi: string;
+  epoch: WarEpoch;
+  yearOrDate: string;
+  portraitUrl: string;
+  videoUrl?: string;
+  videoTitle?: string;
+  significance?: string;
+  significanceRu?: string;
+  significanceHi?: string;
 }
 
 export interface ArticleItem {
