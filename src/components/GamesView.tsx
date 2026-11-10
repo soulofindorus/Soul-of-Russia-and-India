@@ -10,6 +10,7 @@ import {
 import { translations } from '../i18n/translations';
 import { Sparkles, Trophy, CheckCircle, XCircle, HelpCircle, RotateCcw, Award, Flame } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { CulturalQuizModule } from './CulturalQuizModule';
 
 interface GamesViewProps {
   currentLang: Language;
@@ -17,7 +18,7 @@ interface GamesViewProps {
 
 export const GamesView: React.FC<GamesViewProps> = ({ currentLang }) => {
   const t = translations[currentLang];
-  const [activeTab, setActiveTab] = useState<'match' | 'emoji' | 'origin' | 'region' | 'quiz'>('match');
+  const [activeTab, setActiveTab] = useState<'match' | 'emoji' | 'origin' | 'region' | 'quiz' | 'culturalQuiz'>('culturalQuiz');
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
 
@@ -180,6 +181,15 @@ export const GamesView: React.FC<GamesViewProps> = ({ currentLang }) => {
       {/* Tabs */}
       <div className="flex flex-wrap items-center justify-center gap-2">
         {[
+          {
+            id: 'culturalQuiz',
+            label:
+              currentLang === 'ru'
+                ? 'Культурная викторина и рейтинг'
+                : currentLang === 'hi'
+                ? 'सांस्कृतिक प्रश्नोत्तरी और लीडरबोर्ड'
+                : 'Cultural Quiz & Leaderboard',
+          },
           { id: 'match', label: t.games.tabs.wordMatch },
           { id: 'emoji', label: t.games.tabs.emojiGrammar },
           { id: 'origin', label: t.games.tabs.russianOrIndian },
@@ -189,7 +199,7 @@ export const GamesView: React.FC<GamesViewProps> = ({ currentLang }) => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+            className={`rounded-xl px-4 py-2 text-xs font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer ${
               activeTab === tab.id
                 ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
                 : 'bg-white/90 text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 shadow-sm'
@@ -571,6 +581,13 @@ export const GamesView: React.FC<GamesViewProps> = ({ currentLang }) => {
             })}
           </div>
         </div>
+      )}
+      {/* TAB 6: Cultural Quiz & Leaderboard */}
+      {activeTab === 'culturalQuiz' && (
+        <CulturalQuizModule
+          currentLang={currentLang}
+          onScoreEarned={(pts) => setScore((s) => s + pts)}
+        />
       )}
     </section>
   );

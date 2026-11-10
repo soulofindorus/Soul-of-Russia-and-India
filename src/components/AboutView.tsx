@@ -406,8 +406,14 @@ export const AboutView: React.FC<AboutViewProps> = ({ currentLang, onNavigate })
             Explore Opportunities
           </button>
           <button
+            onClick={() => onNavigate('achievements')}
+            className="rounded-xl border border-amber-500/40 bg-amber-500/15 px-6 py-2.5 text-xs font-bold text-amber-300 hover:bg-amber-500/25 whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            {currentLang === 'ru' ? 'Достижения и сертификаты' : currentLang === 'hi' ? 'उपलब्धियाँ और प्रमाणपत्र' : 'Achievements & Certificates'}
+          </button>
+          <button
             onClick={() => onNavigate('heritage')}
-            className="rounded-xl border border-slate-700 bg-slate-900 px-6 py-2.5 text-xs font-bold text-white hover:border-amber-400"
+            className="rounded-xl border border-slate-700 bg-slate-900 px-6 py-2.5 text-xs font-bold text-white hover:border-amber-400 whitespace-nowrap shrink-0 cursor-pointer"
           >
             Discover Heritage
           </button>

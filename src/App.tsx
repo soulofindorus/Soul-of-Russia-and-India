@@ -18,6 +18,7 @@ import { ConnectionsView } from './components/ConnectionsView';
 import { LiteratureView } from './components/LiteratureView';
 import { GamesView } from './components/GamesView';
 import { AboutView } from './components/AboutView';
+import { AchievementsView } from './components/AchievementsView';
 import { RegionModal } from './components/RegionModal';
 import { VideoPlayerModal } from './components/VideoPlayerModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
@@ -40,6 +41,7 @@ function getInitialSection(): string {
     'connections',
     'literature',
     'games',
+    'achievements',
     'about',
   ];
   return validSections.includes(hash) ? hash : 'home';
@@ -460,6 +462,10 @@ export default function App() {
           {activeSection === 'literature' && <LiteratureView currentLang={currentLang} isAdmin={isAdmin} />}
 
           {activeSection === 'games' && <GamesView currentLang={currentLang} />}
+
+          {activeSection === 'achievements' && (
+            <AchievementsView currentLang={currentLang} isAdmin={isAdmin} />
+          )}
 
           {activeSection === 'about' && (
             <AboutView currentLang={currentLang} onNavigate={handleNavigate} />

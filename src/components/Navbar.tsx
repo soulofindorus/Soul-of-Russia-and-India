@@ -14,6 +14,7 @@ import {
   Flame,
   Newspaper,
   ChevronDown,
+  Trophy,
 } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../i18n/translations';
@@ -84,6 +85,12 @@ export const Navbar: React.FC<NavbarProps> = ({
       label: t.nav.games,
       icon: Sparkles,
       desc: currentLang === 'ru' ? 'Культурные викторины и тесты' : currentLang === 'hi' ? 'सांस्कृतिक प्रश्नोत्तरी' : 'Cultural Quizzes & Word Puzzles',
+    },
+    {
+      id: 'achievements',
+      label: currentLang === 'ru' ? 'Достижения' : currentLang === 'hi' ? 'उपलब्धियाँ' : 'Achievements',
+      icon: Trophy,
+      desc: currentLang === 'ru' ? 'Награды, сертификаты и видео' : currentLang === 'hi' ? 'पुरस्कार, प्रमाणपत्र और वीडियो' : 'Awards, Certificates & Media Gallery',
     },
     {
       id: 'about',
