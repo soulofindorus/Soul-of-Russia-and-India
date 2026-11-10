@@ -71,14 +71,29 @@ export default function App() {
 
   // Dynamic datasets (with local storage persistence for admin additions/deletions/edits)
   const [allRegions, setAllRegions] = useState<Region[]>(() => {
+    const defaultRegions = [...initialRussianRegions, ...initialIndianRegions];
     const saved = localStorage.getItem('sri_custom_regions');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const savedMap = new Map<string, Region>();
+          parsed.forEach((r: Region) => {
+            if (r && r.id) savedMap.set(r.id, r);
+          });
+          // Merge: keep user-edited versions of default regions, add any new default regions, plus any custom-added regions
+          const mergedDefaults = defaultRegions.map((def) => {
+            const existing = savedMap.get(def.id);
+            if (!existing) return def;
+            return { ...def, ...existing };
+          });
+          const defaultIds = new Set(defaultRegions.map((d) => d.id));
+          const customAdded = parsed.filter((r: Region) => r && r.id && !defaultIds.has(r.id));
+          return [...customAdded, ...mergedDefaults];
+        }
       } catch (e) {}
     }
-    return [...initialRussianRegions, ...initialIndianRegions];
+    return defaultRegions;
   });
 
   const [soulStories, setSoulStories] = useState<SoulStoryEpisode[]>(() => {
@@ -338,6 +353,25 @@ export default function App() {
     }
   };
 
+  const handleAddRegion = (newRegion: Region) => {
+    setAllRegions((prev) => {
+      const updated = [newRegion, ...prev];
+      try { localStorage.setItem('sri_custom_regions', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  const handleDeleteRegion = (regionId: string) => {
+    setAllRegions((prev) => {
+      const updated = prev.filter((r) => r.id !== regionId);
+      try { localStorage.setItem('sri_custom_regions', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+    if (selectedRegion?.id === regionId) {
+      setSelectedRegion(null);
+    }
+  };
+
   const handleSelectRegionById = (regionId: string) => {
     const target = allRegions.find((r) => r.id === regionId);
     if (target) {
@@ -394,6 +428,9 @@ export default function App() {
               onSelectRegion={(reg) => handleOpenRegion(reg)}
               onPlayVideo={(v) => handleOpenVideo(v)}
               isAdmin={isAdmin}
+              onAddRegion={handleAddRegion}
+              onUpdateRegion={handleUpdateRegion}
+              onDeleteRegion={handleDeleteRegion}
               onAddVideo={handleAddVideo}
               onDeleteVideo={handleDeleteVideo}
               onUpdateVideo={handleUpdateAnyVideo}
@@ -437,6 +474,7 @@ export default function App() {
         onClose={handleCloseRegion}
         isAdmin={isAdmin}
         onUpdateRegion={handleUpdateRegion}
+        onDeleteRegion={handleDeleteRegion}
         onPlayVideo={(region) => {
           if (region.videoUrl) {
             handleOpenVideo({

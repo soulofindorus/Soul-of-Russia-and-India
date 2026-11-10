@@ -25,7 +25,7 @@ import {
   Edit3,
   Upload,
 } from 'lucide-react';
-import { readFileAsDataUrl } from '../utils/imageUpload';
+import { readFileAsDataUrl, normalizeMediaUrl } from '../utils/imageUpload';
 
 interface ArticlesViewProps {
   currentLang: Language;
@@ -113,7 +113,7 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
       content: newContent.trim(),
       contentRu: newContentRu.trim() || newContent.trim(),
       image:
-        newImage.trim() ||
+        normalizeMediaUrl(newImage.trim()) ||
         'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=1200&q=80',
       videoUrl: newVideoUrl.trim(),
       tags: parsedTags.length > 0 ? parsedTags : ['Culture', 'Bilateral'],
@@ -198,7 +198,7 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
       excerptRu: editExcerptRu.trim() || editExcerpt.trim(),
       content: editContent.trim(),
       contentRu: editContentRu.trim() || editContent.trim(),
-      image: editImage.trim() || editingArticle.image,
+      image: normalizeMediaUrl(editImage.trim()) || editingArticle.image,
       videoUrl: editVideoUrl.trim(),
       tags: parsedTags.length > 0 ? parsedTags : editingArticle.tags,
     };

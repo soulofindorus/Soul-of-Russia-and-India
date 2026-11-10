@@ -29,7 +29,11 @@ import {
   Video,
   Languages,
 } from 'lucide-react';
-import { readFileAsDataUrl } from '../utils/imageUpload';
+import {
+  readFileAsDataUrl,
+  normalizeMediaUrl,
+  getDriveVideoEmbedUrl,
+} from '../utils/imageUpload';
 
 interface VictoryViewProps {
   currentLang: Language;
@@ -105,7 +109,6 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
   const [quoteLangTab, setQuoteLangTab] = useState<'all' | 'en' | 'ru' | 'hi'>('all');
   const [editingQuote, setEditingQuote] = useState<VictoryQuote | null>(null);
   const [isEditQuoteModalOpen, setIsEditQuoteModalOpen] = useState<boolean>(false);
-  const [showGalleryInfo, setShowGalleryInfo] = useState<boolean>(false);
 
   // Sync active quote when an epoch filter is selected
   useEffect(() => {
@@ -135,8 +138,12 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
   const handleSaveEditQuote = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingQuote) return;
+    const normalizedQuote: VictoryQuote = {
+      ...editingQuote,
+      portraitUrl: normalizeMediaUrl(editingQuote.portraitUrl),
+    };
     setVictoryQuotes((prev) => {
-      const updated = prev.map((q) => (q.id === editingQuote.id ? editingQuote : q));
+      const updated = prev.map((q) => (q.id === editingQuote.id ? normalizedQuote : q));
       try {
         localStorage.setItem('sri_victory_quotes', JSON.stringify(updated));
       } catch (err) {
@@ -184,6 +191,22 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
           <iframe
             src={embedUrl}
             title={title || 'Victory Chronicle Video'}
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      );
+    }
+
+    // Check if Google Drive Video URL
+    const driveEmbed = getDriveVideoEmbedUrl(videoUrl);
+    if (driveEmbed) {
+      return (
+        <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-red-500/40">
+          <iframe
+            src={driveEmbed}
+            title={title || 'Google Drive Victory Chronicle Video'}
             className="w-full h-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -293,8 +316,13 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
     e.preventDefault();
     if (!editingStory) return;
 
+    const normalizedStory: HeroicStory = {
+      ...editingStory,
+      image: normalizeMediaUrl(editingStory.image),
+    };
+
     setStories((prev) => {
-      const updated = prev.map((s) => (s.id === editingStory.id ? editingStory : s));
+      const updated = prev.map((s) => (s.id === editingStory.id ? normalizedStory : s));
       try {
         localStorage.setItem('sri_custom_heroic_stories', JSON.stringify(updated));
       } catch (err) {
@@ -304,7 +332,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
     });
 
     if (selectedStory?.id === editingStory.id) {
-      setSelectedStory(editingStory);
+      setSelectedStory(normalizedStory);
     }
     setEditingStory(null);
   };
@@ -805,27 +833,6 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
               </div>
             </div>
 
-            {/* Gallery Upload Info Explainer Banner */}
-            <div className="pt-2 border-t border-slate-800">
-              <button
-                onClick={() => setShowGalleryInfo(!showGalleryInfo)}
-                className="text-[11px] font-semibold text-amber-400/90 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                <span>ℹ️ How gallery uploads work on this site</span>
-                <ChevronRight className={`h-3 w-3 transition-transform ${showGalleryInfo ? 'rotate-90' : ''}`} />
-              </button>
-
-              {showGalleryInfo && (
-                <div className="mt-2 p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-300 leading-relaxed space-y-1.5 animate-fade-in">
-                  <p>
-                    <strong>How your gallery uploads are handled:</strong> When you pick a photo or video from your device gallery, the browser’s <code className="text-amber-300">FileReader</code> API reads the file locally and converts it into a self-contained <em>Base64 data URL</em>.
-                  </p>
-                  <p>
-                    It is immediately saved to your browser's <code className="text-amber-300">localStorage</code>. When the page renders, the site feeds that exact data URL into the HTML5 <code className="text-amber-300">&lt;img&gt;</code> or <code className="text-amber-300">&lt;video&gt;</code> player without requiring third-party cloud hosting!
-                  </p>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>

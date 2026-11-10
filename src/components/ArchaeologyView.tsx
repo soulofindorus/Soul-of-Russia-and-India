@@ -29,7 +29,7 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
-import { readFileAsDataUrl } from '../utils/imageUpload';
+import { readFileAsDataUrl, normalizeMediaUrl } from '../utils/imageUpload';
 
 interface ArchaeologyViewProps {
   currentLang: Language;
@@ -137,8 +137,13 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
     e.preventDefault();
     if (!editingSite) return;
 
+    const normalizedSite = {
+      ...editingSite,
+      imageUrl: normalizeMediaUrl(editingSite.imageUrl),
+    };
+
     setSites((prev) => {
-      const updated = prev.map((s) => (s.id === editingSite.id ? editingSite : s));
+      const updated = prev.map((s) => (s.id === editingSite.id ? normalizedSite : s));
       try {
         localStorage.setItem('sri_custom_archaeology_sites', JSON.stringify(updated));
       } catch (err) {
@@ -147,8 +152,8 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
       return updated;
     });
 
-    if (selectedSite?.id === editingSite.id) setSelectedSite(editingSite);
-    if (dossierSite?.id === editingSite.id) setDossierSite(editingSite);
+    if (selectedSite?.id === editingSite.id) setSelectedSite(normalizedSite);
+    if (dossierSite?.id === editingSite.id) setDossierSite(normalizedSite);
     setEditingSite(null);
   };
 
@@ -218,9 +223,9 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
       excavationHighlights: ['Stratigraphic layers well preserved', 'Evidence of metal smelting and bead workshops'],
       excavationHighlightsRu: ['Отличная сохранность стратиграфии', 'Следы металлургии и мастерских'],
       excavationHighlightsHi: ['परिरक्षित स्तर', 'प्राचीन कार्यशालाएं'],
-      imageUrl: newSiteImage.trim() || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80',
+      imageUrl: normalizeMediaUrl(newSiteImage.trim()) || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80',
       galleryImages: [
-        newSiteImage.trim() || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80'
+        normalizeMediaUrl(newSiteImage.trim()) || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80'
       ],
       unescoStatus: 'World Heritage Listed',
       indoEurasianLink: 'Linked to ancient Eurasian trade arteries spanning Central Asia, the Indus, and the Volga.',

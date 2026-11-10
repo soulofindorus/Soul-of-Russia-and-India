@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Region, Language } from '../types';
+import { getRegionPinHtml } from '../utils/mapPin';
 import {
   Compass,
   MapPin,
@@ -196,58 +197,47 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
       const displayName =
         currentLang === 'ru' ? region.nameRu : currentLang === 'hi' ? region.nameHi : region.name;
 
-      // Custom DivIcon with glowing badge & pin
-      const markerHtml = `
-        <div class="group relative flex items-center justify-center cursor-pointer transition-transform duration-200 hover:scale-125" style="transform: translate(-50%, -50%);">
-          <div class="absolute -inset-2 rounded-full ${
-            isSelected
-              ? 'bg-amber-400/50 animate-ping'
-              : isRussia
-              ? 'bg-blue-500/20 group-hover:bg-blue-500/40'
-              : 'bg-orange-500/20 group-hover:bg-orange-500/40'
-          } transition-all"></div>
-          
-          <div class="relative flex h-8 w-8 items-center justify-center rounded-full border-2 ${
-            isSelected
-              ? 'border-amber-300 bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(212,175,55,0.9)] scale-110'
-              : isRussia
-              ? 'border-blue-300 bg-gradient-to-tr from-blue-900 to-blue-600 text-blue-100 shadow-[0_0_12px_rgba(59,130,246,0.6)]'
-              : 'border-amber-300 bg-gradient-to-tr from-orange-800 to-amber-500 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.6)]'
-          }">
-            <span class="text-[11px] font-extrabold">${isRussia ? '🇷🇺' : '🇮🇳'}</span>
-          </div>
-
-          <div class="pointer-events-none absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md border border-amber-500/30 bg-[#070d19]/95 px-2 py-0.5 text-[10px] font-bold text-amber-200 shadow-xl backdrop-blur-md transition-all ${
-            isSelected ? 'opacity-100 scale-100 ring-1 ring-amber-400' : 'opacity-85 scale-95'
-          }">
-            ${displayName}
-          </div>
-        </div>
-      `;
+      // Ornate Heritage Emblem Pin
+      const markerHtml = getRegionPinHtml(region, isSelected, displayName);
 
       const customIcon = L.divIcon({
         html: markerHtml,
         className: 'custom-leaflet-region-pin',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+        iconSize: isSelected ? [36, 44] : [26, 32],
+        iconAnchor: isSelected ? [18, 43] : [13, 31],
       });
 
-      const marker = L.marker([region.lat, region.lng], { icon: customIcon }).addTo(activeMap);
+      const marker = L.marker([region.lat, region.lng], {
+        icon: customIcon,
+        zIndexOffset: isSelected ? 1000 : 0,
+      }).addTo(activeMap);
+      marker.bindTooltip(`<div class="text-[11px] font-bold text-slate-900">${displayName}</div>`, {
+        direction: 'top',
+        offset: [0, -8],
+      });
+
+      const fallbackImg = isRussia ? '/cultural_images/novgorod_kremlin.jpg' : '/cultural_images/indian_gaon.jpg';
+      const localizedDesc =
+        currentLang === 'ru'
+          ? region.shortDescriptionRu || region.shortDescription
+          : currentLang === 'hi'
+          ? region.shortDescriptionHi || region.shortDescription
+          : region.shortDescription;
 
       // Bind custom styled popup
       const popupHtml = `
         <div style="width: 220px;" class="text-left font-sans">
-          <div class="relative h-24 w-full overflow-hidden rounded-lg mb-2 border border-slate-700">
-            <img src="${region.image}" alt="${displayName}" class="h-full w-full object-cover" />
+          <div class="relative h-24 w-full overflow-hidden rounded-lg mb-2 border border-slate-700 bg-slate-900">
+            <img src="${region.image || fallbackImg}" referrerpolicy="no-referrer" onerror="this.src='${fallbackImg}'" alt="${displayName}" class="h-full w-full object-cover" />
             <div class="absolute top-1 left-1 rounded bg-slate-900/90 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
               ${isRussia ? 'Russian Federation' : 'Republic of India'}
             </div>
           </div>
           <div class="font-bold text-xs text-amber-300 mb-0.5">${displayName}</div>
-          <div class="text-[10px] text-slate-300 line-clamp-2 leading-relaxed mb-2">${region.shortDescription}</div>
+          <div class="text-[10px] text-slate-300 line-clamp-2 leading-relaxed mb-2">${localizedDesc}</div>
           <button
             id="popup-btn-${region.id}"
-            class="w-full rounded-md bg-amber-500 hover:bg-amber-400 text-slate-950 px-2 py-1 text-[10px] font-extrabold tracking-wide uppercase shadow transition-colors flex items-center justify-center gap-1"
+            class="w-full rounded-md bg-amber-500 hover:bg-amber-400 text-slate-950 px-2 py-1 text-[10px] font-extrabold tracking-wide uppercase shadow transition-colors flex items-center justify-center gap-1 cursor-pointer"
           >
             <span>Explore Region Dossier</span>
             <span>&rarr;</span>
@@ -382,7 +372,7 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
 
             <div className="hidden lg:flex pointer-events-auto items-center gap-1 rounded-xl border border-amber-500/30 bg-[#080f1e]/90 px-3 py-1.5 text-[11px] text-amber-300 backdrop-blur-md">
               <Sparkles className="h-3 w-3" />
-              <span>13 Historical Landscapes Mapped</span>
+              <span>{regions.length} Historical Landscapes Mapped</span>
             </div>
           </div>
 
@@ -515,7 +505,7 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-          {filteredRegions.map((region) => {
+          {filteredRegions.slice(0, 12).map((region) => {
             const isSelected = selectedRegionId === region.id;
             const isRussia = region.country === 'Russia';
             const name =

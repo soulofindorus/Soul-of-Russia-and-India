@@ -17,23 +17,50 @@ export type VideoCategory =
 export interface Region {
   id: string;
   country: 'Russia' | 'India';
+  regionType?: string; // e.g., 'Republic' | 'Oblast' | 'Krai' | 'Federal City' | 'Autonomous Okrug' | 'Autonomous Oblast' | 'State' | 'Union Territory'
+  federalDistrictOrZone?: string; // e.g., 'Central', 'Volga', 'North', 'South', etc.
+  capital?: string;
+  capitalRu?: string;
+  capitalHi?: string;
   name: string;
   nameRu: string;
   nameHi: string;
   subtitle?: string;
+  subtitleRu?: string;
+  subtitleHi?: string;
   mapX: number; // Percentage for SVG map pin/area
   mapY: number; // Percentage for SVG map pin/area
   lat?: number;
   lng?: number;
   shortDescription: string;
+  shortDescriptionRu?: string;
+  shortDescriptionHi?: string;
   heritageInfo: string;
+  heritageInfoRu?: string;
+  heritageInfoHi?: string;
   archaeologicalInfo?: string;
+  archaeologicalInfoRu?: string;
+  archaeologicalInfoHi?: string;
   historicalPlaces: string[];
+  historicalPlacesRu?: string[];
+  historicalPlacesHi?: string[];
+  specificFeatures?: string[];
+  specificFeaturesRu?: string[];
+  specificFeaturesHi?: string[];
+  funFacts?: string[];
+  funFactsRu?: string[];
+  funFactsHi?: string[];
   traditions: string[];
+  traditionsRu?: string[];
+  traditionsHi?: string[];
+  unescoSites?: string[];
   image: string;
+  galleryImages?: string[];
   videoUrl?: string;
   videoTitle?: string;
   climateOrGeo?: string;
+  climateOrGeoRu?: string;
+  climateOrGeoHi?: string;
 }
 
 export interface VideoItem {
