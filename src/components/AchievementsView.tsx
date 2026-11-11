@@ -6,6 +6,7 @@ import {
   normalizeMediaUrl,
   getDriveVideoEmbedUrl,
 } from '../utils/imageUpload';
+import { savePersistentItem, loadPersistentItem } from '../utils/persistentStore';
 import {
   Award,
   Trophy,
@@ -161,18 +162,27 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
     return DEFAULT_ITEMS;
   });
 
+  useEffect(() => {
+    loadPersistentItem<FeaturedAchievement>('sri_featured_achievement').then((saved) => {
+      if (saved && saved.videoUrl) {
+        setFeatured({ ...DEFAULT_FEATURED, ...saved });
+      }
+    });
+    loadPersistentItem<AchievementItem[]>('sri_achievements_list').then((saved) => {
+      if (Array.isArray(saved) && saved.length > 0) {
+        setItems(saved);
+      }
+    });
+  }, []);
+
   const saveFeatured = (next: FeaturedAchievement) => {
     setFeatured(next);
-    try {
-      localStorage.setItem('sri_featured_achievement', JSON.stringify(next));
-    } catch {}
+    void savePersistentItem('sri_featured_achievement', next);
   };
 
   const saveItems = (next: AchievementItem[]) => {
     setItems(next);
-    try {
-      localStorage.setItem('sri_achievements_list', JSON.stringify(next));
-    } catch {}
+    void savePersistentItem('sri_achievements_list', next);
   };
 
   // Edit Featured Modal

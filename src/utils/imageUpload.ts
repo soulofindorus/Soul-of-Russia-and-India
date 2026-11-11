@@ -1,7 +1,9 @@
 /**
  * Image and media upload processing utilities for live client-side administrative edits.
- * Automatically compresses large camera/gallery photos before saving to prevent localStorage overflow.
+ * When Google Drive is connected, uploads full-quality media directly to Google Drive.
+ * Otherwise compresses images before saving to local IndexedDB/localStorage.
  */
+import { getDriveAccessToken, uploadFileToGoogleDrive } from './googleDrive';
 
 /**
  * Resizes and compresses an image file using an offscreen canvas to keep
@@ -9,9 +11,9 @@
  */
 export function compressImage(
   file: File,
-  maxWidth = 1280,
-  maxHeight = 1280,
-  quality = 0.82
+  maxWidth = 1024,
+  maxHeight = 1024,
+  quality = 0.78
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     // If SVG or GIF, preserve as raw data URL without lossy canvas conversion
@@ -74,7 +76,19 @@ export async function readFileAsDataUrl(file: File): Promise<string> {
     throw new Error('Please select a valid image or video file.');
   }
 
-  // Optimize images through canvas compression
+  // If Google Drive is connected, upload full-quality file straight to Google Drive!
+  if (getDriveAccessToken()) {
+    try {
+      const uploaded = await uploadFileToGoogleDrive(file);
+      if (uploaded?.url) {
+        return uploaded.url;
+      }
+    } catch (err) {
+      console.warn('Google Drive upload failed, falling back to local storage:', err);
+    }
+  }
+
+  // Optimize images through canvas compression when storing locally
   if (file.type.startsWith('image/')) {
     try {
       return await compressImage(file);

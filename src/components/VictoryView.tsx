@@ -34,6 +34,7 @@ import {
   normalizeMediaUrl,
   getDriveVideoEmbedUrl,
 } from '../utils/imageUpload';
+import { savePersistentItem, loadPersistentItem } from '../utils/persistentStore';
 
 interface VictoryViewProps {
   currentLang: Language;
@@ -105,6 +106,19 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
     return victoryQuotesData;
   });
 
+  useEffect(() => {
+    loadPersistentItem<HeroicStory[]>('sri_custom_heroic_stories').then((saved) => {
+      if (Array.isArray(saved) && saved.length > 0) {
+        setStories(saved);
+      }
+    });
+    loadPersistentItem<VictoryQuote[]>('sri_victory_quotes').then((saved) => {
+      if (Array.isArray(saved) && saved.length > 0) {
+        setVictoryQuotes(saved);
+      }
+    });
+  }, []);
+
   const [activeQuoteIndex, setActiveQuoteIndex] = useState<number>(0);
   const [quoteLangTab, setQuoteLangTab] = useState<'all' | 'en' | 'ru' | 'hi'>('all');
   const [editingQuote, setEditingQuote] = useState<VictoryQuote | null>(null);
@@ -144,11 +158,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
     };
     setVictoryQuotes((prev) => {
       const updated = prev.map((q) => (q.id === editingQuote.id ? normalizedQuote : q));
-      try {
-        localStorage.setItem('sri_victory_quotes', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('Failed to save edited quotes to localStorage', err);
-      }
+      void savePersistentItem('sri_victory_quotes', updated);
       return updated;
     });
     setIsEditQuoteModalOpen(false);
@@ -285,7 +295,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
 
     setStories((prev) => {
       const updated = [created, ...prev];
-      try { localStorage.setItem('sri_custom_heroic_stories', JSON.stringify(updated)); } catch (err) {}
+      void savePersistentItem('sri_custom_heroic_stories', updated);
       return updated;
     });
 
@@ -323,11 +333,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
 
     setStories((prev) => {
       const updated = prev.map((s) => (s.id === editingStory.id ? normalizedStory : s));
-      try {
-        localStorage.setItem('sri_custom_heroic_stories', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('Failed to save edited heroic stories to localStorage', err);
-      }
+      void savePersistentItem('sri_custom_heroic_stories', updated);
       return updated;
     });
 
@@ -364,7 +370,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
     if (confirm('Are you sure you want to remove this heroic chronicle?')) {
       setStories((prev) => {
         const updated = prev.filter((s) => s.id !== id);
-        try { localStorage.setItem('sri_custom_heroic_stories', JSON.stringify(updated)); } catch (err) {}
+        void savePersistentItem('sri_custom_heroic_stories', updated);
         return updated;
       });
       if (selectedStory?.id === id) {

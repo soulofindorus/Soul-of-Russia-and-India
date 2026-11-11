@@ -26,6 +26,22 @@ import { AdminAuthModal } from './components/AdminAuthModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AmbientCulturalBackground } from './components/AmbientCulturalBackground';
 import { fetchOpportunitiesFromSupabase, insertOpportunityToSupabase } from './lib/supabase';
+import { savePersistentItem, loadPersistentItem } from './utils/persistentStore';
+
+function mergeRegionsWithDefaults(parsed: Region[], defaultRegions: Region[]): Region[] {
+  const savedMap = new Map<string, Region>();
+  parsed.forEach((r) => {
+    if (r && r.id) savedMap.set(r.id, r);
+  });
+  const mergedDefaults = defaultRegions.map((def) => {
+    const existing = savedMap.get(def.id);
+    if (!existing) return def;
+    return { ...def, ...existing };
+  });
+  const defaultIds = new Set(defaultRegions.map((d) => d.id));
+  const customAdded = parsed.filter((r) => r && r.id && !defaultIds.has(r.id));
+  return [...customAdded, ...mergedDefaults];
+}
 
 function getInitialSection(): string {
   if (typeof window === 'undefined') return 'home';
@@ -71,7 +87,7 @@ export default function App() {
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   const [activeVideo, setActiveVideo] = useState<(VideoItem | SoulStoryEpisode) | null>(null);
 
-  // Dynamic datasets (with local storage persistence for admin additions/deletions/edits)
+  // Dynamic datasets (with IndexedDB + localStorage persistence for admin additions/deletions/edits)
   const [allRegions, setAllRegions] = useState<Region[]>(() => {
     const defaultRegions = [...initialRussianRegions, ...initialIndianRegions];
     const saved = localStorage.getItem('sri_custom_regions');
@@ -79,19 +95,7 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const savedMap = new Map<string, Region>();
-          parsed.forEach((r: Region) => {
-            if (r && r.id) savedMap.set(r.id, r);
-          });
-          // Merge: keep user-edited versions of default regions, add any new default regions, plus any custom-added regions
-          const mergedDefaults = defaultRegions.map((def) => {
-            const existing = savedMap.get(def.id);
-            if (!existing) return def;
-            return { ...def, ...existing };
-          });
-          const defaultIds = new Set(defaultRegions.map((d) => d.id));
-          const customAdded = parsed.filter((r: Region) => r && r.id && !defaultIds.has(r.id));
-          return [...customAdded, ...mergedDefaults];
+          return mergeRegionsWithDefaults(parsed, defaultRegions);
         }
       } catch (e) {}
     }
@@ -131,6 +135,25 @@ export default function App() {
     return heritageVideosData;
   });
 
+  // Hydrate large datasets from IndexedDB on mount (survives reloads even when localStorage 5MB quota is exceeded)
+  useEffect(() => {
+    const defaultRegions = [...initialRussianRegions, ...initialIndianRegions];
+    loadPersistentItem<Region[]>('sri_custom_regions').then((saved) => {
+      if (Array.isArray(saved) && saved.length > 0) {
+        setAllRegions(mergeRegionsWithDefaults(saved, defaultRegions));
+      }
+    });
+    loadPersistentItem<SoulStoryEpisode[]>('sri_custom_soul_stories').then((saved) => {
+      if (Array.isArray(saved) && saved.length > 0) setSoulStories(saved);
+    });
+    loadPersistentItem<VideoItem[]>('sri_custom_videos').then((saved) => {
+      if (Array.isArray(saved) && saved.length > 0) setHeritageVideos(saved);
+    });
+    loadPersistentItem<Opportunity[]>('sri_custom_opportunities').then((saved) => {
+      if (Array.isArray(saved) && saved.length > 0) setOpportunities(saved);
+    });
+  }, []);
+
   // Sync opportunities with Supabase backend
   useEffect(() => {
     fetchOpportunitiesFromSupabase().then((data) => {
@@ -140,7 +163,7 @@ export default function App() {
           const existingIds = new Set(data.map((d) => d.id));
           const customs = current.filter((c) => !existingIds.has(c.id));
           const merged = [...customs, ...data];
-          try { localStorage.setItem('sri_custom_opportunities', JSON.stringify(merged)); } catch (e) {}
+          void savePersistentItem('sri_custom_opportunities', merged);
           return merged;
         });
       }
@@ -250,7 +273,7 @@ export default function App() {
   const handleAddOpportunity = async (newOpp: Opportunity) => {
     setOpportunities((prev) => {
       const updated = [newOpp, ...prev];
-      try { localStorage.setItem('sri_custom_opportunities', JSON.stringify(updated)); } catch (e) {}
+      void savePersistentItem('sri_custom_opportunities', updated);
       return updated;
     });
     await insertOpportunityToSupabase(newOpp);
@@ -259,7 +282,7 @@ export default function App() {
   const handleDeleteOpportunity = (oppId: string) => {
     setOpportunities((prev) => {
       const updated = prev.filter((o) => o.id !== oppId);
-      try { localStorage.setItem('sri_custom_opportunities', JSON.stringify(updated)); } catch (e) {}
+      void savePersistentItem('sri_custom_opportunities', updated);
       return updated;
     });
   };
@@ -267,7 +290,7 @@ export default function App() {
   const handleAddVideo = (newVid: VideoItem) => {
     setHeritageVideos((prev) => {
       const updated = [newVid, ...prev];
-      try { localStorage.setItem('sri_custom_videos', JSON.stringify(updated)); } catch (e) {}
+      void savePersistentItem('sri_custom_videos', updated);
       return updated;
     });
   };
@@ -275,7 +298,7 @@ export default function App() {
   const handleDeleteVideo = (vidId: string) => {
     setHeritageVideos((prev) => {
       const updated = prev.filter((v) => v.id !== vidId);
-      try { localStorage.setItem('sri_custom_videos', JSON.stringify(updated)); } catch (e) {}
+      void savePersistentItem('sri_custom_videos', updated);
       return updated;
     });
   };
@@ -298,7 +321,7 @@ export default function App() {
       const exists = prev.some((v) => v.id === videoId);
       if (!exists) return prev;
       const updated = prev.map((v) => (v.id === videoId ? { ...v, ...updates } : v));
-      try { localStorage.setItem('sri_custom_videos', JSON.stringify(updated)); } catch (e) {}
+      void savePersistentItem('sri_custom_videos', updated);
       return updated;
     });
 
@@ -307,7 +330,7 @@ export default function App() {
       const exists = prev.some((s) => s.id === videoId);
       if (!exists) return prev;
       const updated = prev.map((s) => (s.id === videoId ? { ...s, ...updates } : s));
-      try { localStorage.setItem('sri_custom_soul_stories', JSON.stringify(updated)); } catch (e) {}
+      void savePersistentItem('sri_custom_soul_stories', updated);
       return updated;
     });
 
@@ -327,7 +350,7 @@ export default function App() {
         }
         return r;
       });
-      try { localStorage.setItem('sri_custom_regions', JSON.stringify(updated)); } catch (e) {}
+      void savePersistentItem('sri_custom_regions', updated);
       return updated;
     });
 
@@ -347,7 +370,7 @@ export default function App() {
   const handleUpdateRegion = (updatedRegion: Region) => {
     setAllRegions((prev) => {
       const updated = prev.map((r) => (r.id === updatedRegion.id ? updatedRegion : r));
-      try { localStorage.setItem('sri_custom_regions', JSON.stringify(updated)); } catch (e) {}
+      void savePersistentItem('sri_custom_regions', updated);
       return updated;
     });
     if (selectedRegion?.id === updatedRegion.id) {
@@ -358,7 +381,7 @@ export default function App() {
   const handleAddRegion = (newRegion: Region) => {
     setAllRegions((prev) => {
       const updated = [newRegion, ...prev];
-      try { localStorage.setItem('sri_custom_regions', JSON.stringify(updated)); } catch (e) {}
+      void savePersistentItem('sri_custom_regions', updated);
       return updated;
     });
   };
@@ -366,7 +389,7 @@ export default function App() {
   const handleDeleteRegion = (regionId: string) => {
     setAllRegions((prev) => {
       const updated = prev.filter((r) => r.id !== regionId);
-      try { localStorage.setItem('sri_custom_regions', JSON.stringify(updated)); } catch (e) {}
+      void savePersistentItem('sri_custom_regions', updated);
       return updated;
     });
     if (selectedRegion?.id === regionId) {

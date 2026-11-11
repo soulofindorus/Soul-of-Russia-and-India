@@ -30,6 +30,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { readFileAsDataUrl, normalizeMediaUrl } from '../utils/imageUpload';
+import { savePersistentItem, loadPersistentItem } from '../utils/persistentStore';
 
 interface ArchaeologyViewProps {
   currentLang: Language;
@@ -50,6 +51,12 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
     }
     return archaeologicalSitesData;
   });
+
+  useEffect(() => {
+    loadPersistentItem<ArchaeologicalSite[]>('sri_custom_archaeology_sites').then((saved) => {
+      if (Array.isArray(saved) && saved.length > 0) setSites(saved);
+    });
+  }, []);
 
   const [selectedSite, setSelectedSite] = useState<ArchaeologicalSite | null>(null);
   const [dossierSite, setDossierSite] = useState<ArchaeologicalSite | null>(null);
@@ -144,11 +151,7 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
 
     setSites((prev) => {
       const updated = prev.map((s) => (s.id === editingSite.id ? normalizedSite : s));
-      try {
-        localStorage.setItem('sri_custom_archaeology_sites', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('Failed to save archaeology sites', err);
-      }
+      void savePersistentItem('sri_custom_archaeology_sites', updated);
       return updated;
     });
 
@@ -162,9 +165,7 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
     if (confirm('Are you sure you want to delete this archaeological site?')) {
       setSites((prev) => {
         const updated = prev.filter((s) => s.id !== id);
-        try {
-          localStorage.setItem('sri_custom_archaeology_sites', JSON.stringify(updated));
-        } catch (err) {}
+        void savePersistentItem('sri_custom_archaeology_sites', updated);
         return updated;
       });
       if (selectedSite?.id === id) setSelectedSite(null);
@@ -235,9 +236,7 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
 
     setSites((prev) => {
       const updated = [created, ...prev];
-      try {
-        localStorage.setItem('sri_custom_archaeology_sites', JSON.stringify(updated));
-      } catch (err) {}
+      void savePersistentItem('sri_custom_archaeology_sites', updated);
       return updated;
     });
 

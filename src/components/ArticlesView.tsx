@@ -26,6 +26,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { readFileAsDataUrl, normalizeMediaUrl } from '../utils/imageUpload';
+import { savePersistentItem, loadPersistentItem } from '../utils/persistentStore';
 
 interface ArticlesViewProps {
   currentLang: Language;
@@ -48,6 +49,12 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
     }
     return initialArticlesData;
   });
+
+  React.useEffect(() => {
+    loadPersistentItem<ArticleItem[]>('sri_custom_articles').then((saved) => {
+      if (Array.isArray(saved) && saved.length > 0) setArticles(saved);
+    });
+  }, []);
 
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -122,9 +129,7 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
 
     setArticles((prev) => {
       const updated = [created, ...prev];
-      try {
-        localStorage.setItem('sri_custom_articles', JSON.stringify(updated));
-      } catch (err) {}
+      void savePersistentItem('sri_custom_articles', updated);
       return updated;
     });
 
@@ -205,9 +210,7 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
 
     setArticles((prev) => {
       const updated = prev.map((a) => (a.id === updatedArticle.id ? updatedArticle : a));
-      try {
-        localStorage.setItem('sri_custom_articles', JSON.stringify(updated));
-      } catch (err) {}
+      void savePersistentItem('sri_custom_articles', updated);
       return updated;
     });
 
@@ -223,9 +226,7 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
     if (confirm('Are you sure you want to delete this article?')) {
       setArticles((prev) => {
         const updated = prev.filter((a) => a.id !== id);
-        try {
-          localStorage.setItem('sri_custom_articles', JSON.stringify(updated));
-        } catch (err) {}
+        void savePersistentItem('sri_custom_articles', updated);
         return updated;
       });
       if (activeArticle?.id === id) {

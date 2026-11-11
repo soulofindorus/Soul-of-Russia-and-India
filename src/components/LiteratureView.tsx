@@ -4,6 +4,7 @@ import { authorsData } from '../data/literatureData';
 import { translations } from '../i18n/translations';
 import { BookOpen, Quote, Sparkles, Feather, Calendar, Clock, Bookmark, X, Edit3, Upload } from 'lucide-react';
 import { readFileAsDataUrl } from '../utils/imageUpload';
+import { savePersistentItem, loadPersistentItem } from '../utils/persistentStore';
 
 interface LiteratureViewProps {
   currentLang: Language;
@@ -26,6 +27,15 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
     }
     return authorsData;
   });
+
+  React.useEffect(() => {
+    loadPersistentItem<Author[]>('sri_custom_authors').then((saved) => {
+      if (Array.isArray(saved) && saved.length > 0) {
+        setAuthors(saved);
+        setSelectedAuthor((prev) => (prev ? saved.find((a) => a.id === prev.id) || saved[0] : saved[0]));
+      }
+    });
+  }, []);
 
   const [selectedEra, setSelectedEra] = useState<string>('All');
   const [selectedAuthor, setSelectedAuthor] = useState<Author | null>(() => authors[0] || authorsData[0]);
@@ -57,9 +67,7 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
 
     setAuthors((prev) => {
       const updated = prev.map((a) => (a.id === editingAuthor.id ? editingAuthor : a));
-      try {
-        localStorage.setItem('sri_custom_authors', JSON.stringify(updated));
-      } catch (err) {}
+      void savePersistentItem('sri_custom_authors', updated);
       return updated;
     });
 
