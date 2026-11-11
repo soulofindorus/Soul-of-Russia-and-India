@@ -18,7 +18,6 @@ import {
   ExternalLink,
   AlertTriangle,
 } from 'lucide-react';
-import { User } from 'firebase/auth';
 import {
   initGoogleDriveAuth,
   signInWithGoogleDrive,
@@ -35,6 +34,7 @@ import {
   PORTAL_BACKUP_KEYS,
   DriveMediaFile,
   DriveLinkMeta,
+  DriveUserInfo,
 } from '../utils/googleDrive';
 import { loadPersistentItem, savePersistentItem } from '../utils/persistentStore';
 
@@ -61,7 +61,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
   const [successMsg, setSuccessMsg] = useState('');
 
   // Google Drive state
-  const [driveUser, setDriveUser] = useState<User | null>(() => getCurrentDriveUser());
+  const [driveUser, setDriveUser] = useState<DriveUserInfo | null>(() => getCurrentDriveUser());
   const [linkedMeta, setLinkedMeta] = useState<DriveLinkMeta | null>(() => getLinkedDriveMeta());
   const [needsDriveAuth, setNeedsDriveAuth] = useState<boolean>(() => !getDriveAccessToken());
   const [isDriveLoading, setIsDriveLoading] = useState(false);

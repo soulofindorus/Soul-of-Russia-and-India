@@ -44,10 +44,16 @@ export interface DriveLinkMeta {
   autoSync: boolean;
 }
 
+export interface DriveUserInfo {
+  email: string | null;
+  displayName?: string | null;
+}
+
 // In-memory cache only for OAuth access token (never stored in localStorage or sessionStorage)
 let isSigningIn = false;
 let cachedAccessToken: string | null = null;
 let cachedFolderId: string | null = null;
+let cachedDriveUser: DriveUserInfo | null = null;
 
 export function getLinkedDriveMeta(): DriveLinkMeta | null {
   try {
@@ -72,14 +78,17 @@ function saveLinkedDriveMeta(meta: DriveLinkMeta | null): void {
 }
 
 export const initGoogleDriveAuth = (
-  onAuthSuccess?: (user: User, token: string) => void,
+  onAuthSuccess?: (user: DriveUserInfo, token: string) => void,
   onAuthFailure?: () => void
 ) => {
   return onAuthStateChanged(auth, (user: User | null) => {
-    if (user && cachedAccessToken) {
-      onAuthSuccess?.(user, cachedAccessToken);
+    if ((user || cachedDriveUser) && cachedAccessToken) {
+      const info: DriveUserInfo = user
+        ? { email: user.email, displayName: user.displayName }
+        : cachedDriveUser!;
+      onAuthSuccess?.(info, cachedAccessToken);
     } else if (!isSigningIn) {
-      if (!user) {
+      if (!user && !cachedDriveUser) {
         cachedAccessToken = null;
         cachedFolderId = null;
       }
@@ -88,31 +97,151 @@ export const initGoogleDriveAuth = (
   });
 };
 
+function loadGisScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      reject(new Error('Window is not available'));
+      return;
+    }
+    const win = window as unknown as { google?: { accounts?: { oauth2?: unknown } } };
+    if (win.google?.accounts?.oauth2) {
+      resolve();
+      return;
+    }
+    const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve());
+      existing.addEventListener('error', () => reject(new Error('Failed to load Google Sign-In script')));
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load Google Sign-In script'));
+    document.head.appendChild(script);
+  });
+}
+
+async function signInWithGisFallback(): Promise<{
+  user: DriveUserInfo;
+  accessToken: string;
+}> {
+  const clientId = (firebaseConfig as { oAuthClientId?: string }).oAuthClientId;
+  if (!clientId) {
+    throw new Error('OAuth Client ID is missing in configuration.');
+  }
+
+  await loadGisScript();
+
+  const token = await new Promise<string>((resolve, reject) => {
+    const win = window as unknown as {
+      google?: {
+        accounts?: {
+          oauth2?: {
+            initTokenClient: (config: {
+              client_id: string;
+              scope: string;
+              callback: (resp: { access_token?: string; error?: string; error_description?: string }) => void;
+            }) => { requestAccessToken: (opts?: { prompt?: string }) => void };
+          };
+        };
+      };
+    };
+
+    const oauth2 = win.google?.accounts?.oauth2;
+    if (!oauth2) {
+      reject(new Error('Google Identity Services failed to initialize.'));
+      return;
+    }
+
+    const tokenClient = oauth2.initTokenClient({
+      client_id: clientId,
+      scope: `${SCOPES.join(' ')} https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile`,
+      callback: (resp) => {
+        if (resp.error || !resp.access_token) {
+          reject(new Error(resp.error_description || resp.error || 'Google Drive authorization cancelled.'));
+          return;
+        }
+        resolve(resp.access_token);
+      },
+    });
+
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  });
+
+  // Fetch basic profile email for display
+  let userInfo: DriveUserInfo = { email: 'Connected Google Account' };
+  try {
+    const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (profileRes.ok) {
+      const profile = await profileRes.json();
+      userInfo = {
+        email: profile.email || 'Connected Google Account',
+        displayName: profile.name || null,
+      };
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  cachedAccessToken = token;
+  cachedFolderId = null;
+  cachedDriveUser = userInfo;
+
+  return { user: userInfo, accessToken: token };
+}
+
 export const signInWithGoogleDrive = async (): Promise<{
-  user: User;
+  user: DriveUserInfo;
   accessToken: string;
 }> => {
   try {
     isSigningIn = true;
-    const result = await signInWithPopup(auth, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
-      throw new Error('Failed to obtain Google Drive access token.');
+    let userInfo: DriveUserInfo;
+    let accessToken: string;
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (!credential?.accessToken) {
+        throw new Error('Failed to obtain Google Drive access token.');
+      }
+      accessToken = credential.accessToken;
+      userInfo = { email: result.user.email, displayName: result.user.displayName };
+      cachedAccessToken = accessToken;
+      cachedFolderId = null;
+      cachedDriveUser = userInfo;
+    } catch (firebaseErr: unknown) {
+      const code = (firebaseErr as { code?: string })?.code || '';
+      const message = (firebaseErr as { message?: string })?.message || '';
+      if (
+        code === 'auth/unauthorized-domain' ||
+        code === 'auth/operation-not-supported-in-this-environment' ||
+        message.includes('unauthorized-domain')
+      ) {
+        const gisResult = await signInWithGisFallback();
+        userInfo = gisResult.user;
+        accessToken = gisResult.accessToken;
+      } else {
+        throw firebaseErr;
+      }
     }
-    cachedAccessToken = credential.accessToken;
-    cachedFolderId = null;
 
     const existingMeta = getLinkedDriveMeta();
-    const folderId = await getOrCreateAppFolder(cachedAccessToken).catch(() => existingMeta?.folderId);
+    const folderId = await getOrCreateAppFolder(accessToken).catch(() => existingMeta?.folderId);
     saveLinkedDriveMeta({
-      email: result.user.email || existingMeta?.email || 'Connected Account',
+      email: userInfo.email || existingMeta?.email || 'Connected Account',
       folderId,
       backupFileId: existingMeta?.backupFileId,
       lastSyncedAt: existingMeta?.lastSyncedAt,
       autoSync: existingMeta?.autoSync ?? true,
     });
 
-    return { user: result.user, accessToken: cachedAccessToken };
+    return { user: userInfo, accessToken };
   } finally {
     isSigningIn = false;
   }
@@ -121,16 +250,25 @@ export const signInWithGoogleDrive = async (): Promise<{
 export const signOutGoogleDrive = async (): Promise<void> => {
   cachedAccessToken = null;
   cachedFolderId = null;
+  cachedDriveUser = null;
   saveLinkedDriveMeta(null);
-  await auth.signOut();
+  try {
+    await auth.signOut();
+  } catch {
+    // ignore
+  }
 };
 
 export const getDriveAccessToken = (): string | null => {
   return cachedAccessToken;
 };
 
-export const getCurrentDriveUser = (): User | null => {
-  return auth.currentUser;
+export const getCurrentDriveUser = (): DriveUserInfo | null => {
+  if (cachedDriveUser) return cachedDriveUser;
+  if (auth.currentUser) {
+    return { email: auth.currentUser.email, displayName: auth.currentUser.displayName };
+  }
+  return null;
 };
 
 export const setDriveAutoSync = (enabled: boolean): void => {
