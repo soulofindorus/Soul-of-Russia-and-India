@@ -28,6 +28,7 @@ import {
 import {
   readFileAsDataUrl,
   normalizeMediaUrl,
+  resolveCachedMediaUrl,
   handleMediaImageError,
 } from '../utils/imageUpload';
 import {
@@ -393,7 +394,7 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
           {/* Photo */}
           <div className="relative lg:col-span-7 h-64 sm:h-80 lg:h-full overflow-hidden bg-slate-900">
             <img
-              src={normalizeMediaUrl(featuredArticle.image)}
+              src={resolveCachedMediaUrl(featuredArticle.image)}
               referrerPolicy="no-referrer"
               onError={(e) => {
                 void handleMediaImageError(
@@ -487,7 +488,7 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
               {/* Cover Photo */}
               <div className="relative h-48 w-full overflow-hidden bg-slate-100">
                 <img
-                  src={normalizeMediaUrl(article.image)}
+                  src={resolveCachedMediaUrl(article.image)}
                   referrerPolicy="no-referrer"
                   onError={(e) => {
                     void handleMediaImageError(
@@ -642,7 +643,7 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
             {/* Article Cover Image */}
             <div className="relative h-64 sm:h-80 w-full overflow-hidden -mt-12 bg-slate-950">
               <img
-                src={normalizeMediaUrl(activeArticle.image)}
+                src={resolveCachedMediaUrl(activeArticle.image)}
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   void handleMediaImageError(
@@ -882,7 +883,7 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
                 {newImage && (
                   <div className="relative mt-2 h-32 w-full rounded-xl overflow-hidden border border-slate-700">
                     <img
-                      src={normalizeMediaUrl(newImage)}
+                      src={resolveCachedMediaUrl(newImage)}
                       referrerPolicy="no-referrer"
                       alt="Cover preview"
                       className="h-full w-full object-cover"
@@ -1110,7 +1111,7 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
                 {editImage && (
                   <div className="relative mt-2 h-36 w-full rounded-xl overflow-hidden border border-slate-700">
                     <img
-                      src={normalizeMediaUrl(editImage)}
+                      src={resolveCachedMediaUrl(editImage)}
                       referrerPolicy="no-referrer"
                       alt="Cover preview"
                       className="h-full w-full object-cover"

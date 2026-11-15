@@ -32,6 +32,7 @@ import {
 import {
   readFileAsDataUrl,
   normalizeMediaUrl,
+  resolveCachedMediaUrl,
   getDriveVideoEmbedUrl,
   handleMediaImageError,
 } from '../utils/imageUpload';
@@ -660,7 +661,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
               <div className="flex items-center gap-3.5 border-b border-slate-800 pb-4">
                 <div className="relative h-14 w-14 sm:h-16 sm:w-16 rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-lg shrink-0 bg-slate-950">
                   <img
-                    src={normalizeMediaUrl(activeQuote.portraitUrl)}
+                    src={resolveCachedMediaUrl(activeQuote.portraitUrl)}
                     referrerPolicy="no-referrer"
                     alt={activeQuote.figureName}
                     className="h-full w-full object-cover"
@@ -872,7 +873,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
               {/* Hero & War Topic Photo Container */}
               <div className="relative h-48 sm:h-52 w-full overflow-hidden rounded-2xl bg-slate-900 border border-slate-100 shadow-inner -mt-1 mb-3">
                 <img
-                  src={normalizeMediaUrl(story.image) || 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80'}
+                  src={resolveCachedMediaUrl(story.image) || 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80'}
                   referrerPolicy="no-referrer"
                   alt={currentLang === 'ru' ? story.heroNameRu : story.heroName}
                   className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
@@ -1027,7 +1028,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
               {/* Hero Memorial Photo Banner */}
               <div className="relative h-64 sm:h-72 w-full overflow-hidden rounded-2xl border border-red-500/40 bg-slate-950 shadow-2xl">
                 <img
-                  src={normalizeMediaUrl(selectedStory.image) || 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80'}
+                  src={resolveCachedMediaUrl(selectedStory.image) || 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80'}
                   referrerPolicy="no-referrer"
                   alt={currentLang === 'ru' ? selectedStory.heroNameRu : selectedStory.heroName}
                   className="h-full w-full object-cover"

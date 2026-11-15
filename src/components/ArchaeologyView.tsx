@@ -32,6 +32,7 @@ import {
 import {
   readFileAsDataUrl,
   normalizeMediaUrl,
+  resolveCachedMediaUrl,
   handleMediaImageError,
 } from '../utils/imageUpload';
 import {
@@ -870,7 +871,7 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
                     className="relative h-60 w-full cursor-pointer overflow-hidden bg-slate-950 group/photo"
                   >
                     <img
-                      src={normalizeMediaUrl(site.imageUrl)}
+                      src={resolveCachedMediaUrl(site.imageUrl)}
                       referrerPolicy="no-referrer"
                       onError={(e) => {
                         void handleMediaImageError(
@@ -1085,7 +1086,7 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
             {/* Hero Image */}
             <div className="mt-5 relative h-64 sm:h-80 w-full rounded-xl overflow-hidden border border-slate-800">
               <img
-                src={normalizeMediaUrl(dossierSite.imageUrl)}
+                src={resolveCachedMediaUrl(dossierSite.imageUrl)}
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   void handleMediaImageError(
@@ -1387,7 +1388,7 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
                 {newSiteImage && (
                   <div className="mt-2 relative w-24 h-16 rounded-xl overflow-hidden border border-slate-700">
                     <img
-                      src={normalizeMediaUrl(newSiteImage)}
+                      src={resolveCachedMediaUrl(newSiteImage)}
                       referrerPolicy="no-referrer"
                       alt="Preview"
                       className="w-full h-full object-cover"

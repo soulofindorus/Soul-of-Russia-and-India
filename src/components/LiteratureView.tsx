@@ -6,6 +6,7 @@ import { BookOpen, Quote, Sparkles, Feather, Calendar, Clock, Bookmark, X, Edit3
 import {
   readFileAsDataUrl,
   normalizeMediaUrl,
+  resolveCachedMediaUrl,
   handleMediaImageError,
 } from '../utils/imageUpload';
 import {
@@ -141,7 +142,7 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
                   }`}
                 >
                   <img
-                    src={normalizeMediaUrl(author.portrait)}
+                    src={resolveCachedMediaUrl(author.portrait)}
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       void handleMediaImageError(
@@ -190,7 +191,7 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
           <div className="lg:col-span-8 rounded-3xl border border-amber-500/30 bg-[#0c1424] p-6 sm:p-10 shadow-2xl space-y-8">
             <div className="flex flex-col sm:flex-row items-start gap-6 border-b border-slate-800 pb-6">
               <img
-                src={normalizeMediaUrl(selectedAuthor.portrait)}
+                src={resolveCachedMediaUrl(selectedAuthor.portrait)}
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   void handleMediaImageError(
@@ -333,7 +334,7 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
                   }`}
                 >
                   <img
-                    src={normalizeMediaUrl(author.portrait)}
+                    src={resolveCachedMediaUrl(author.portrait)}
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       void handleMediaImageError(
@@ -467,7 +468,7 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
                   {editingAuthor.portrait && (
                     <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-amber-500/40 shrink-0 shadow">
                       <img
-                        src={normalizeMediaUrl(editingAuthor.portrait)}
+                        src={resolveCachedMediaUrl(editingAuthor.portrait)}
                         referrerPolicy="no-referrer"
                         onError={(e) => {
                           void handleMediaImageError(

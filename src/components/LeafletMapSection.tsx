@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Region, Language } from '../types';
 import { getRegionPinHtml } from '../utils/mapPin';
+import { resolveCachedMediaUrl, handleMediaImageError } from '../utils/imageUpload';
 import {
   Compass,
   MapPin,
@@ -224,11 +225,12 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
           ? region.shortDescriptionHi || region.shortDescription
           : region.shortDescription;
 
+      const resolvedImg = resolveCachedMediaUrl(region.image) || fallbackImg;
       // Bind custom styled popup
       const popupHtml = `
         <div style="width: 220px;" class="text-left font-sans">
           <div class="relative h-24 w-full overflow-hidden rounded-lg mb-2 border border-slate-700 bg-slate-900">
-            <img src="${region.image || fallbackImg}" referrerpolicy="no-referrer" onerror="this.src='${fallbackImg}'" alt="${displayName}" class="h-full w-full object-cover" />
+            <img id="popup-img-${region.id}" src="${resolvedImg}" referrerpolicy="no-referrer" onerror="this.src='${fallbackImg}'" alt="${displayName}" class="h-full w-full object-cover" />
             <div class="absolute top-1 left-1 rounded bg-slate-900/90 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
               ${isRussia ? 'Russian Federation' : 'Republic of India'}
             </div>
@@ -433,7 +435,20 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
             <div className="flex items-start justify-between gap-3">
               <div className="flex gap-3">
                 <img
-                  src={selectedRegion.image}
+                  src={
+                    resolveCachedMediaUrl(selectedRegion.image) ||
+                    (selectedRegion.country === 'Russia'
+                      ? '/cultural_images/novgorod_kremlin.jpg'
+                      : '/cultural_images/indian_gaon.jpg')
+                  }
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const fb =
+                      selectedRegion.country === 'Russia'
+                        ? '/cultural_images/novgorod_kremlin.jpg'
+                        : '/cultural_images/indian_gaon.jpg';
+                    void handleMediaImageError(e.currentTarget, selectedRegion.image, fb);
+                  }}
                   alt={selectedRegion.name}
                   className="h-16 w-16 rounded-xl object-cover border border-amber-400/40 shrink-0"
                 />
@@ -525,7 +540,17 @@ export const LeafletMapSection: React.FC<LeafletMapSectionProps> = ({
               >
                 {/* Background Image of the Box */}
                 <img
-                  src={region.image}
+                  src={
+                    resolveCachedMediaUrl(region.image) ||
+                    (isRussia ? '/cultural_images/novgorod_kremlin.jpg' : '/cultural_images/indian_gaon.jpg')
+                  }
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const fb = isRussia
+                      ? '/cultural_images/novgorod_kremlin.jpg'
+                      : '/cultural_images/indian_gaon.jpg';
+                    void handleMediaImageError(e.currentTarget, region.image, fb);
+                  }}
                   alt={region.name}
                   className="absolute inset-0 h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
                   loading="lazy"

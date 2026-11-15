@@ -4,6 +4,7 @@ import { formatVideoEmbedUrl } from './VideoPlayerModal';
 import {
   readFileAsDataUrl,
   normalizeMediaUrl,
+  resolveCachedMediaUrl,
   getDriveVideoEmbedUrl,
   handleMediaImageError,
 } from '../utils/imageUpload';
@@ -517,8 +518,8 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
               const caption = pick(item.captionEn, item.captionRu, item.captionHi);
               const previewImg =
                 item.type === 'video'
-                  ? item.thumbnailUrl || '/cultural_images/smolensk_fortress.jpg'
-                  : normalizeMediaUrl(item.mediaUrl) || '/cultural_images/novgorod_kremlin.jpg';
+                  ? resolveCachedMediaUrl(item.thumbnailUrl) || '/cultural_images/smolensk_fortress.jpg'
+                  : resolveCachedMediaUrl(item.mediaUrl) || '/cultural_images/novgorod_kremlin.jpg';
 
               return (
                 <div
@@ -1053,7 +1054,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                 <div className="w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-950 flex items-center justify-center max-h-[60vh]">
                   <img
                     src={
-                      normalizeMediaUrl(activePreviewItem.mediaUrl) ||
+                      resolveCachedMediaUrl(activePreviewItem.mediaUrl) ||
                       '/cultural_images/novgorod_kremlin.jpg'
                     }
                     referrerPolicy="no-referrer"

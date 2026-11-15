@@ -435,6 +435,7 @@ export default function App() {
           {activeSection === 'home' && (
             <HeroSection
               currentLang={currentLang}
+              regions={allRegions}
               onNavigate={handleNavigate}
               onPlayFeaturedVideo={handlePlayFeaturedVideo}
               onSelectRegion={handleSelectRegionById}

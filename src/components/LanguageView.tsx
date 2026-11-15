@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { GrammarLesson, GrammarExercise, Language } from '../types';
 import { russianGrammarLessons, hindiLanguageGuides } from '../data/languageData';
 import { translations } from '../i18n/translations';
-import { BookOpen, CheckCircle, XCircle, Sparkles, HelpCircle, ArrowRight, RotateCcw, Award } from 'lucide-react';
+import { BookOpen, CheckCircle, XCircle, Sparkles, HelpCircle, ArrowRight, RotateCcw, Award, Gamepad2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { VocabularyQuiz } from './VocabularyQuiz';
 
 interface LanguageViewProps {
   currentLang: Language;
@@ -11,7 +12,7 @@ interface LanguageViewProps {
 
 export const LanguageView: React.FC<LanguageViewProps> = ({ currentLang }) => {
   const t = translations[currentLang];
-  const [activeLanguageTab, setActiveLanguageTab] = useState<'russian' | 'hindi'>('russian');
+  const [activeLanguageTab, setActiveLanguageTab] = useState<'russian' | 'hindi' | 'vocabulary'>('russian');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [activeLessonId, setActiveLessonId] = useState<string>(russianGrammarLessons[0].id);
 
@@ -85,8 +86,8 @@ export const LanguageView: React.FC<LanguageViewProps> = ({ currentLang }) => {
       </div>
 
       {/* Language Choice Switcher */}
-      <div className="flex justify-center">
-        <div className="inline-flex rounded-2xl border border-slate-200/90 bg-white/90 p-1.5 shadow-md">
+      <div className="flex justify-center w-full">
+        <div className="inline-flex flex-wrap justify-center gap-1 rounded-2xl border border-slate-200/90 bg-white/90 p-1.5 shadow-md">
           <button
             onClick={() => setActiveLanguageTab('russian')}
             className={`flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-all cursor-pointer ${
@@ -108,6 +109,23 @@ export const LanguageView: React.FC<LanguageViewProps> = ({ currentLang }) => {
           >
             <span className="text-lg">🇮🇳</span>
             <span>{t.language.hindiTab}</span>
+          </button>
+          <button
+            onClick={() => setActiveLanguageTab('vocabulary')}
+            className={`flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-all cursor-pointer ${
+              activeLanguageTab === 'vocabulary'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg'
+                : 'text-slate-700 hover:text-slate-950 hover:bg-slate-50'
+            }`}
+          >
+            <Gamepad2 className="h-4 w-4" />
+            <span>
+              {currentLang === 'ru'
+                ? 'Словарная викторина'
+                : currentLang === 'hi'
+                ? 'शब्दावली प्रश्नोत्तरी'
+                : 'Vocabulary Quiz'}
+            </span>
           </button>
         </div>
       </div>
@@ -409,6 +427,13 @@ export const LanguageView: React.FC<LanguageViewProps> = ({ currentLang }) => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* VOCABULARY QUIZ GAME */}
+      {activeLanguageTab === 'vocabulary' && (
+        <div className="w-full">
+          <VocabularyQuiz currentLang={currentLang} />
         </div>
       )}
     </section>

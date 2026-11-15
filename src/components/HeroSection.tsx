@@ -1,7 +1,6 @@
 import React from 'react';
-import { Language, VideoItem, SoulStoryEpisode, Region } from '../types';
+import { Language, Region } from '../types';
 import { translations } from '../i18n/translations';
-import { regionsData } from '../data/regionsData';
 import { LeafletMapSection } from './LeafletMapSection';
 import {
   Compass,
@@ -20,6 +19,7 @@ import {
 
 interface HeroSectionProps {
   currentLang: Language;
+  regions: Region[];
   onNavigate: (section: string) => void;
   onPlayFeaturedVideo: () => void;
   onSelectRegion: (regionId: string) => void;
@@ -27,6 +27,7 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
   currentLang,
+  regions,
   onNavigate,
   onPlayFeaturedVideo,
   onSelectRegion,
@@ -206,7 +207,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Interactive Leaflet Map Section for Russia and India */}
         <LeafletMapSection
           currentLang={currentLang}
-          regions={regionsData}
+          regions={regions}
           onSelectRegion={onSelectRegion}
           onNavigate={onNavigate}
         />

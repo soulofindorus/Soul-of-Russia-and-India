@@ -5,6 +5,7 @@ import { InteractiveMap } from './InteractiveMap';
 import { formatVideoEmbedUrl } from './VideoPlayerModal';
 import {
   normalizeMediaUrl,
+  resolveCachedMediaUrl,
   readFileAsDataUrl,
   handleMediaImageError,
 } from '../utils/imageUpload';
@@ -577,7 +578,7 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
                   >
                     <div className="relative h-36 w-full overflow-hidden bg-slate-950">
                       <img
-                        src={normalizeMediaUrl(region.image) || fallbackImg}
+                        src={resolveCachedMediaUrl(region.image) || fallbackImg}
                         referrerPolicy="no-referrer"
                         onError={(e) => {
                           void handleMediaImageError(e.currentTarget, region.image, fallbackImg);
@@ -690,7 +691,7 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
               >
                 <div className="relative aspect-video w-full overflow-hidden bg-slate-950">
                   <img
-                    src={normalizeMediaUrl(episode.thumbnail) || '/cultural_images/novgorod_kremlin.jpg'}
+                    src={resolveCachedMediaUrl(episode.thumbnail) || '/cultural_images/novgorod_kremlin.jpg'}
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       void handleMediaImageError(
@@ -832,7 +833,7 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
               >
                 <div className="relative aspect-video w-full overflow-hidden bg-black">
                   <img
-                    src={normalizeMediaUrl(vid.thumbnail) || '/cultural_images/novgorod_kremlin.jpg'}
+                    src={resolveCachedMediaUrl(vid.thumbnail) || '/cultural_images/novgorod_kremlin.jpg'}
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       void handleMediaImageError(

@@ -19,6 +19,7 @@ import { translations } from '../i18n/translations';
 import {
   readFileAsDataUrl,
   normalizeMediaUrl,
+  resolveCachedMediaUrl,
   handleMediaImageError,
 } from '../utils/imageUpload';
 
@@ -102,9 +103,15 @@ export const RegionModal: React.FC<RegionModalProps> = ({
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (onUpdateRegion) {
+      const normalizedGallery = (formData.galleryImages || [])
+        .map((g) => normalizeMediaUrl(g))
+        .filter(Boolean);
+      const normalizedCover =
+        normalizeMediaUrl(formData.image) || normalizedGallery[0] || fallbackImg;
       onUpdateRegion({
         ...formData,
-        image: normalizeMediaUrl(formData.image) || fallbackImg,
+        image: normalizedCover,
+        galleryImages: normalizedGallery,
         videoUrl: formData.videoUrl?.trim() || '',
       });
     }
@@ -135,8 +142,8 @@ export const RegionModal: React.FC<RegionModalProps> = ({
   const traditions = pickList(region.traditions, region.traditionsRu, region.traditionsHi);
 
   const allPhotos = [
-    normalizeMediaUrl(region.image) || fallbackImg,
-    ...(region.galleryImages || []).map((g) => normalizeMediaUrl(g)).filter(Boolean),
+    region.image || fallbackImg,
+    ...(region.galleryImages || []).filter(Boolean),
   ];
 
   const labels = {
@@ -632,11 +639,13 @@ export const RegionModal: React.FC<RegionModalProps> = ({
 
               {/* Cover Photo & Gallery */}
               <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 space-y-3">
-                <label className="block text-slate-200 font-semibold">Primary Photo (URL, Google Drive, or Device Upload)</label>
+                <label className="block text-slate-200 font-semibold">
+                  Main Thumbnail &amp; Cover Photo (Homepage, Map &amp; Cards)
+                </label>
                 <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                   {formData.image && (
                     <img
-                      src={normalizeMediaUrl(formData.image) || fallbackImg}
+                      src={resolveCachedMediaUrl(formData.image) || fallbackImg}
                       referrerPolicy="no-referrer"
                       onError={(e) => {
                         void handleMediaImageError(e.currentTarget, formData.image, fallbackImg);
@@ -710,9 +719,9 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                   {formData.galleryImages && formData.galleryImages.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-2">
                       {formData.galleryImages.map((imgUrl, idx) => (
-                        <div key={idx} className="relative h-14 w-20 rounded-lg overflow-hidden border border-slate-700">
+                        <div key={idx} className="group relative h-16 w-24 rounded-lg overflow-hidden border border-slate-700">
                           <img
-                            src={normalizeMediaUrl(imgUrl)}
+                            src={resolveCachedMediaUrl(imgUrl)}
                             referrerPolicy="no-referrer"
                             onError={(e) => {
                               void handleMediaImageError(e.currentTarget, imgUrl, fallbackImg);
@@ -720,6 +729,19 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                             alt={`Gallery ${idx + 1}`}
                             className="h-full w-full object-cover"
                           />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                image: imgUrl,
+                              }))
+                            }
+                            title="Use as Main Homepage & Map Thumbnail"
+                            className="absolute bottom-0.5 left-0.5 rounded bg-amber-500/95 hover:bg-amber-400 px-1.5 py-0.5 text-[9px] font-bold text-slate-950 shadow cursor-pointer"
+                          >
+                            Set Cover
+                          </button>
                           <button
                             type="button"
                             onClick={() =>
@@ -762,7 +784,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
           <>
             <div className="relative h-60 sm:h-72 w-full overflow-hidden">
               <img
-                src={normalizeMediaUrl(region.image) || fallbackImg}
+                src={resolveCachedMediaUrl(region.image) || fallbackImg}
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   void handleMediaImageError(e.currentTarget, region.image, fallbackImg);
@@ -930,7 +952,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                     {allPhotos.map((src, i) => (
                       <div key={i} className="aspect-video overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
                         <img
-                          src={src}
+                          src={resolveCachedMediaUrl(src) || fallbackImg}
                           referrerPolicy="no-referrer"
                           onError={(e) => {
                             void handleMediaImageError(e.currentTarget, src, fallbackImg);

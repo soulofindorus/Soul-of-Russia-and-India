@@ -5,6 +5,7 @@ import { archaeologicalSitesData } from '../data/archaeologyData';
 import { heroicStoriesData } from '../data/victoryData';
 import { initialArticlesData } from '../data/articlesData';
 import { Flame, Newspaper } from 'lucide-react';
+import { resolveCachedMediaUrl, handleMediaImageError } from '../utils/imageUpload';
 
 interface GlobalSearchModalProps {
   isOpen: boolean;
@@ -242,7 +243,20 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                         className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-2.5 text-left hover:border-amber-500/40 hover:bg-slate-900 transition-colors"
                       >
                         <img
-                          src={region.image}
+                          src={
+                            resolveCachedMediaUrl(region.image) ||
+                            (region.country === 'Russia'
+                              ? '/cultural_images/novgorod_kremlin.jpg'
+                              : '/cultural_images/indian_gaon.jpg')
+                          }
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const fb =
+                              region.country === 'Russia'
+                                ? '/cultural_images/novgorod_kremlin.jpg'
+                                : '/cultural_images/indian_gaon.jpg';
+                            void handleMediaImageError(e.currentTarget, region.image, fb);
+                          }}
                           alt={region.name}
                           className="h-10 w-10 rounded-lg object-cover"
                         />

@@ -682,10 +682,27 @@ export function extractGoogleDriveFileId(url?: string): string | null {
 }
 
 /**
- * Resolves a media URL synchronously using the integrity-verified memory cache when available,
- * preventing reload flicker for Google Drive and cached assets.
+ * Normalizes a media URL to its canonical persistent form (NEVER returns volatile `blob:` URLs).
+ * Safe to save into IndexedDB, localStorage, and Google Drive backups.
  */
 export function normalizeMediaUrl(url?: string): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+
+  if (trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+
+  const driveId = extractGoogleDriveFileId(trimmed);
+  return driveId ? getCanonicalDriveUrl(driveId) : trimmed;
+}
+
+/**
+ * Resolves a media URL for `<img src>` rendering, returning the integrity-verified
+ * cached `blob:` or `data:` URL synchronously from memory when available to prevent reload flicker.
+ */
+export function resolveCachedMediaUrl(url?: string): string {
   if (!url) return '';
   const trimmed = url.trim();
   if (!trimmed) return '';

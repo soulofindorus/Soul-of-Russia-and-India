@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Region, Language } from '../types';
 import { getRegionPinHtml } from '../utils/mapPin';
+import { resolveCachedMediaUrl } from '../utils/imageUpload';
 import { Compass, ChevronRight, Layers } from 'lucide-react';
 
 interface InteractiveMapProps {
@@ -193,7 +194,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       const isSelected = selectedRegionId === region.id;
       const displayName = getLocalizedName(region);
       const displayDesc = getLocalizedDesc(region);
-      const imgSrc = region.image || fallbackImg;
+      const imgSrc = resolveCachedMediaUrl(region.image) || fallbackImg;
 
       const markerHtml = getRegionPinHtml(region, isSelected, displayName);
 

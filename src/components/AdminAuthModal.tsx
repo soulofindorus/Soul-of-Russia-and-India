@@ -47,7 +47,7 @@ import {
   savePersistentItem,
   notifyPortalDataSynced,
 } from '../utils/persistentStore';
-import { handleMediaImageError, normalizeMediaUrl } from '../utils/imageUpload';
+import { handleMediaImageError, resolveCachedMediaUrl } from '../utils/imageUpload';
 
 interface AdminAuthModalProps {
   isOpen: boolean;
@@ -678,7 +678,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                                       <Film className="h-4 w-4 text-amber-400" />
                                     ) : (
                                       <img
-                                        src={normalizeMediaUrl(file.url)}
+                                        src={resolveCachedMediaUrl(file.url)}
                                         alt={file.name}
                                         referrerPolicy="no-referrer"
                                         onError={(e) => {
