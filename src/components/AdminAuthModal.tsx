@@ -36,6 +36,7 @@ import {
   syncWithGoogleDriveBackup,
   getLinkedDriveMeta,
   setDriveAutoSync,
+  getDriveAuthDiagnostics,
   PORTAL_BACKUP_KEYS,
   DriveMediaFile,
   DriveLinkMeta,
@@ -88,6 +89,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
   const [driveFiles, setDriveFiles] = useState<DriveMediaFile[]>([]);
   const [showDriveFiles, setShowDriveFiles] = useState(false);
   const [copiedFileId, setCopiedFileId] = useState<string | null>(null);
+  const [copiedOriginField, setCopiedOriginField] = useState<string | null>(null);
 
   // Explicit user confirmation states for mutating/destructive Drive operations
   const [pendingConfirm, setPendingConfirm] = useState<
@@ -419,8 +421,73 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                 </p>
 
                 {driveError && (
-                  <div className="rounded-xl border border-red-500/40 bg-red-950/40 p-2.5 text-[11px] text-red-300">
-                    {driveError}
+                  <div className="rounded-xl border border-red-500/40 bg-red-950/40 p-3 text-[11px] text-red-200 space-y-2">
+                    <div>{driveError}</div>
+                    {(driveError.includes('origin_mismatch') ||
+                      driveError.includes('unauthorized-domain') ||
+                      driveError.includes('Authorization') ||
+                      driveError.includes('authorization') ||
+                      driveError.includes('closed')) && (() => {
+                      const diag = getDriveAuthDiagnostics();
+                      const handleCopyField = async (label: string, value: string) => {
+                        try {
+                          await navigator.clipboard.writeText(value);
+                          setCopiedOriginField(label);
+                          setTimeout(() => setCopiedOriginField(null), 1800);
+                        } catch {
+                          // ignore
+                        }
+                      };
+                      return (
+                        <div className="rounded-lg border border-amber-500/30 bg-slate-950/70 p-2.5 text-[10px] text-slate-300 space-y-1.5">
+                          <div className="font-semibold text-amber-300">
+                            Quick Fix — Authorize This App Origin (Project: {diag.projectId})
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate font-mono text-slate-200" title={diag.origin}>
+                              Origin: {diag.origin}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => void handleCopyField('origin', diag.origin)}
+                              className="inline-flex items-center gap-1 rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700 shrink-0 cursor-pointer"
+                            >
+                              {copiedOriginField === 'origin' ? (
+                                <Check className="h-3 w-3 text-emerald-400" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                              <span>{copiedOriginField === 'origin' ? 'Copied' : 'Copy'}</span>
+                            </button>
+                          </div>
+                          {diag.oAuthClientId && (
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate font-mono text-slate-400" title={diag.oAuthClientId}>
+                                Client ID: {diag.oAuthClientId}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => void handleCopyField('client', diag.oAuthClientId)}
+                                className="inline-flex items-center gap-1 rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700 shrink-0 cursor-pointer"
+                              >
+                                {copiedOriginField === 'client' ? (
+                                  <Check className="h-3 w-3 text-emerald-400" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                                <span>{copiedOriginField === 'client' ? 'Copied' : 'Copy'}</span>
+                              </button>
+                            </div>
+                          )}
+                          <div className="text-slate-400 leading-relaxed pt-0.5">
+                            Add <span className="font-mono text-slate-200">{diag.origin}</span> under{' '}
+                            <span className="text-slate-200">Google Cloud Console → Credentials → OAuth 2.0 Client → Authorized JavaScript origins</span>, or add{' '}
+                            <span className="font-mono text-slate-200">{diag.hostname}</span> under{' '}
+                            <span className="text-slate-200">Firebase Console → Authentication → Settings → Authorized domains</span>.
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 

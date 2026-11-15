@@ -165,17 +165,16 @@ export function preloadGoogleDriveClient(): void {
   document.head.appendChild(script);
 }
 
-function shouldUseDirectGis(): boolean {
-  if (typeof window === 'undefined') return true;
-  const host = window.location.hostname;
-  const inIframe = window.self !== window.top;
-  // Firebase signInWithPopup fails on ephemeral .run.app domains, localhost, or cross-origin iframes
-  return (
-    inIframe ||
-    host.endsWith('.run.app') ||
-    host === 'localhost' ||
-    host === '127.0.0.1'
-  );
+let firebaseDomainRejected = false;
+
+export function getDriveAuthDiagnostics() {
+  return {
+    origin: typeof window !== 'undefined' ? window.location.origin : '',
+    hostname: typeof window !== 'undefined' ? window.location.hostname : '',
+    projectId: firebaseConfig.projectId,
+    oAuthClientId: (firebaseConfig as { oAuthClientId?: string }).oAuthClientId || '',
+    authDomain: firebaseConfig.authDomain,
+  };
 }
 
 function isTokenValid(): boolean {
@@ -307,29 +306,14 @@ export const signInWithGoogleDrive = async (): Promise<ConnectDriveResult> => {
     let expiresIn = 3500;
     let userInfo: DriveUserInfo = { email: null };
 
-    const prebuiltClient = ensureGisTokenClient();
     const meta = getLinkedDriveMeta();
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
 
-    // CRITICAL: If running in AI Studio (.run.app / iframe) or GIS is ready,
-    // trigger requestAccessToken synchronously BEFORE any `await` so Safari/iOS/Chrome
-    // never block the popup as non-user-initiated!
-    if (shouldUseDirectGis() || prebuiltClient) {
-      const gisPromise = requestGisTokenSynchronously(meta?.email ? '' : 'select_account').catch(
-        (err: Error) => {
-          // If silent/empty prompt wasn't granted yet, retry with explicit select_account
-          if (meta?.email && err.message.includes('consent')) {
-            return requestGisTokenSynchronously('select_account');
-          }
-          throw err;
-        }
-      );
-      const resp = await gisPromise;
-      if (!resp.access_token) {
-        throw new Error('Failed to obtain Google Drive access token.');
-      }
-      accessToken = resp.access_token;
-      expiresIn = resp.expires_in || 3500;
-    } else {
+    // 1. Primary path (per Google Workspace / Firebase Auth spec):
+    //    Use Firebase signInWithPopup which routes OAuth via authDomain (firebaseapp.com/__/auth/handler)
+    //    and avoids GIS Error 400: origin_mismatch on preview domains whenever Firebase Authorized Domains includes this host.
+    if (!firebaseDomainRejected) {
       try {
         const result = await signInWithPopup(auth, provider);
         const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -344,12 +328,50 @@ export const signInWithGoogleDrive = async (): Promise<ConnectDriveResult> => {
           code === 'auth/unauthorized-domain' ||
           code === 'auth/operation-not-supported-in-this-environment'
         ) {
-          const resp = await requestGisTokenSynchronously('select_account');
-          accessToken = resp.access_token!;
-          expiresIn = resp.expires_in || 3500;
+          firebaseDomainRejected = true;
+          try {
+            const resp = await requestGisTokenSynchronously(meta?.email ? '' : 'select_account');
+            if (!resp.access_token) {
+              throw new Error('Failed to obtain Google Drive access token.');
+            }
+            accessToken = resp.access_token;
+            expiresIn = resp.expires_in || 3500;
+          } catch (gisErr: unknown) {
+            const gisMsg = gisErr instanceof Error ? gisErr.message : String(gisErr);
+            if (gisMsg.toLowerCase().includes('popup_failed_to_open') || gisMsg.toLowerCase().includes('pop-up')) {
+              throw new Error(
+                `Domain "${hostname}" is not yet authorized in Firebase Auth, and the fallback popup was blocked. Please allow pop-ups or authorize "${origin}" below.`
+              );
+            }
+            throw new Error(
+              `Origin/Domain authorization required (origin_mismatch / auth/unauthorized-domain) for "${origin}". Register this URL in Google Cloud Console (Authorized JavaScript origins) or Firebase Authentication (Authorized domains).`
+            );
+          }
         } else {
           throw firebaseErr;
         }
+      }
+    } else {
+      // 2. Direct GIS path (when Firebase rejected domain; triggered synchronously on click)
+      try {
+        const resp = await requestGisTokenSynchronously(meta?.email ? '' : 'select_account').catch(
+          (err: Error) => {
+            if (meta?.email && err.message.includes('consent')) {
+              return requestGisTokenSynchronously('select_account');
+            }
+            throw err;
+          }
+        );
+        if (!resp.access_token) {
+          throw new Error('Failed to obtain Google Drive access token.');
+        }
+        accessToken = resp.access_token;
+        expiresIn = resp.expires_in || 3500;
+      } catch (gisErr: unknown) {
+        const gisMsg = gisErr instanceof Error ? gisErr.message : String(gisErr);
+        throw new Error(
+          `${gisMsg} (If you saw Error 400: origin_mismatch, register "${origin}" under Authorized JavaScript origins in Google Cloud Console or add "${hostname}" to Firebase Authorized domains.)`
+        );
       }
     }
 
