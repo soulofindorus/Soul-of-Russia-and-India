@@ -25,8 +25,17 @@ import {
   Edit3,
   Upload,
 } from 'lucide-react';
-import { readFileAsDataUrl, normalizeMediaUrl } from '../utils/imageUpload';
-import { savePersistentItem, loadPersistentItem } from '../utils/persistentStore';
+import {
+  readFileAsDataUrl,
+  normalizeMediaUrl,
+  handleMediaImageError,
+} from '../utils/imageUpload';
+import {
+  savePersistentItem,
+  loadPersistentItem,
+  readSyncCache,
+  PORTAL_DATA_SYNCED_EVENT,
+} from '../utils/persistentStore';
 
 interface ArticlesViewProps {
   currentLang: Language;
@@ -36,30 +45,34 @@ interface ArticlesViewProps {
 export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin = false }) => {
   const t = translations[currentLang];
 
-  // Articles state with localStorage persistence
+  // Articles state with synchronous cache hydration
   const [articles, setArticles] = useState<ArticleItem[]>(() => {
-    const saved = localStorage.getItem('sri_custom_articles');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {
-        console.warn('Failed to parse saved articles', e);
-      }
-    }
+    const parsed = readSyncCache<ArticleItem[]>('sri_custom_articles');
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     return initialArticlesData;
   });
 
   React.useEffect(() => {
-    loadPersistentItem<ArticleItem[]>('sri_custom_articles').then((saved) => {
-      if (Array.isArray(saved) && saved.length > 0) setArticles(saved);
-    });
+    const hydrateArticles = () => {
+      loadPersistentItem<ArticleItem[]>('sri_custom_articles').then((saved) => {
+        if (Array.isArray(saved) && saved.length > 0) setArticles(saved);
+      });
+    };
+
+    hydrateArticles();
+    window.addEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateArticles);
+    return () => {
+      window.removeEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateArticles);
+    };
   }, []);
 
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeArticle, setActiveArticle] = useState<ArticleItem | null>(null);
   const [copiedDirectLink, setCopiedDirectLink] = useState<boolean>(false);
+  const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
+  const [imageUploadError, setImageUploadError] = useState<string>('');
+  const [confirmDeleteArticleId, setConfirmDeleteArticleId] = useState<string | null>(null);
 
   const handleCopyDirectLink = async () => {
     try {
@@ -221,18 +234,16 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
     setEditingArticle(null);
   };
 
-  const handleDeleteArticle = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm('Are you sure you want to delete this article?')) {
-      setArticles((prev) => {
-        const updated = prev.filter((a) => a.id !== id);
-        void savePersistentItem('sri_custom_articles', updated);
-        return updated;
-      });
-      if (activeArticle?.id === id) {
-        setActiveArticle(null);
-      }
+  const handleDeleteArticle = (id: string) => {
+    setArticles((prev) => {
+      const updated = prev.filter((a) => a.id !== id);
+      void savePersistentItem('sri_custom_articles', updated);
+      return updated;
+    });
+    if (activeArticle?.id === id) {
+      setActiveArticle(null);
     }
+    setConfirmDeleteArticleId(null);
   };
 
   const filteredArticles = articles.filter((article) => {
@@ -382,7 +393,15 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
           {/* Photo */}
           <div className="relative lg:col-span-7 h-64 sm:h-80 lg:h-full overflow-hidden bg-slate-900">
             <img
-              src={featuredArticle.image}
+              src={normalizeMediaUrl(featuredArticle.image)}
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                void handleMediaImageError(
+                  e.currentTarget,
+                  featuredArticle.image,
+                  'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=1200&q=80'
+                );
+              }}
               alt={featuredArticle.title}
               className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
@@ -468,7 +487,15 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
               {/* Cover Photo */}
               <div className="relative h-48 w-full overflow-hidden bg-slate-100">
                 <img
-                  src={article.image}
+                  src={normalizeMediaUrl(article.image)}
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    void handleMediaImageError(
+                      e.currentTarget,
+                      article.image,
+                      'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=1200&q=80'
+                    );
+                  }}
                   alt={article.title}
                   className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
@@ -537,13 +564,33 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
                         >
                           <Edit3 className="h-3.5 w-3.5" />
                         </button>
-                        <button
-                          onClick={(e) => handleDeleteArticle(article.id, e)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Delete article (Admin)"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        {confirmDeleteArticleId === article.id ? (
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => handleDeleteArticle(article.id)}
+                              className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white cursor-pointer"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteArticleId(null)}
+                              className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmDeleteArticleId(article.id);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                            title="Delete article (Admin)"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
                     )}
                     <span className="font-bold text-amber-700 flex items-center gap-1">
@@ -595,7 +642,15 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
             {/* Article Cover Image */}
             <div className="relative h-64 sm:h-80 w-full overflow-hidden -mt-12 bg-slate-950">
               <img
-                src={activeArticle.image}
+                src={normalizeMediaUrl(activeArticle.image)}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  void handleMediaImageError(
+                    e.currentTarget,
+                    activeArticle.image,
+                    'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=1200&q=80'
+                  );
+                }}
                 alt={activeArticle.title}
                 className="h-full w-full object-cover"
               />
@@ -796,28 +851,42 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
                   />
                   <label className="flex items-center gap-1.5 rounded-xl border border-amber-500/50 bg-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/30 cursor-pointer transition-colors shrink-0">
                     <Upload className="h-4 w-4" />
-                    <span>Upload Photo</span>
+                    <span>{isUploadingImage ? 'Uploading...' : 'Upload Photo'}</span>
                     <input
                       type="file"
                       accept="image/*"
+                      disabled={isUploadingImage}
                       className="hidden"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          try {
-                            const dataUrl = await readFileAsDataUrl(file);
-                            setNewImage(dataUrl);
-                          } catch (err: any) {
-                            alert(err?.message || 'Failed to read image');
-                          }
+                        if (!file) return;
+                        setImageUploadError('');
+                        setIsUploadingImage(true);
+                        try {
+                          const dataUrl = await readFileAsDataUrl(file);
+                          setNewImage(dataUrl);
+                        } catch (err: unknown) {
+                          setImageUploadError(
+                            err instanceof Error ? err.message : 'Failed to read image'
+                          );
+                        } finally {
+                          setIsUploadingImage(false);
                         }
                       }}
                     />
                   </label>
                 </div>
+                {imageUploadError && (
+                  <p className="text-[11px] text-red-400">{imageUploadError}</p>
+                )}
                 {newImage && (
                   <div className="relative mt-2 h-32 w-full rounded-xl overflow-hidden border border-slate-700">
-                    <img src={newImage} alt="Cover preview" className="h-full w-full object-cover" />
+                    <img
+                      src={normalizeMediaUrl(newImage)}
+                      referrerPolicy="no-referrer"
+                      alt="Cover preview"
+                      className="h-full w-full object-cover"
+                    />
                     <span className="absolute bottom-1 right-2 rounded bg-black/70 px-2 py-0.5 text-[10px] text-emerald-400 font-semibold">
                       Photo Ready
                     </span>
@@ -900,9 +969,10 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-5 py-2 font-bold text-slate-950 shadow-md hover:from-amber-500 hover:to-amber-400 cursor-pointer"
+                  disabled={isUploadingImage}
+                  className="rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-5 py-2 font-bold text-slate-950 shadow-md hover:from-amber-500 hover:to-amber-400 cursor-pointer disabled:opacity-50"
                 >
-                  Publish Article
+                  {isUploadingImage ? 'Uploading Photo...' : 'Publish Article'}
                 </button>
               </div>
             </form>
@@ -1009,28 +1079,42 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
                   />
                   <label className="flex items-center gap-1.5 rounded-xl border border-amber-500/50 bg-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/30 cursor-pointer transition-colors shrink-0">
                     <Upload className="h-4 w-4" />
-                    <span>Upload Photo</span>
+                    <span>{isUploadingImage ? 'Uploading...' : 'Upload Photo'}</span>
                     <input
                       type="file"
                       accept="image/*"
+                      disabled={isUploadingImage}
                       className="hidden"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          try {
-                            const dataUrl = await readFileAsDataUrl(file);
-                            setEditImage(dataUrl);
-                          } catch (err: any) {
-                            alert(err?.message || 'Failed to read image');
-                          }
+                        if (!file) return;
+                        setImageUploadError('');
+                        setIsUploadingImage(true);
+                        try {
+                          const dataUrl = await readFileAsDataUrl(file);
+                          setEditImage(dataUrl);
+                        } catch (err: unknown) {
+                          setImageUploadError(
+                            err instanceof Error ? err.message : 'Failed to read image'
+                          );
+                        } finally {
+                          setIsUploadingImage(false);
                         }
                       }}
                     />
                   </label>
                 </div>
+                {imageUploadError && (
+                  <p className="text-[11px] text-red-400">{imageUploadError}</p>
+                )}
                 {editImage && (
                   <div className="relative mt-2 h-36 w-full rounded-xl overflow-hidden border border-slate-700">
-                    <img src={editImage} alt="Cover preview" className="h-full w-full object-cover" />
+                    <img
+                      src={normalizeMediaUrl(editImage)}
+                      referrerPolicy="no-referrer"
+                      alt="Cover preview"
+                      className="h-full w-full object-cover"
+                    />
                     <span className="absolute bottom-1 right-2 rounded bg-black/70 px-2 py-0.5 text-[10px] text-emerald-400 font-semibold">
                       New Photo Preview
                     </span>
@@ -1133,9 +1217,10 @@ export const ArticlesView: React.FC<ArticlesViewProps> = ({ currentLang, isAdmin
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 px-6 py-2.5 font-bold text-slate-950 shadow-md hover:from-amber-500 hover:to-orange-400 cursor-pointer"
+                  disabled={isUploadingImage}
+                  className="rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-orange-500 px-6 py-2.5 font-bold text-slate-950 shadow-md hover:from-amber-500 hover:to-orange-400 cursor-pointer disabled:opacity-50"
                 >
-                  Save Article & Photo Edits
+                  {isUploadingImage ? 'Uploading Photo...' : 'Save Article & Photo Edits'}
                 </button>
               </div>
             </form>

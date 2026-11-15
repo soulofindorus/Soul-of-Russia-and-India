@@ -7,7 +7,12 @@ import {
   User,
 } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { loadPersistentItem } from './persistentStore';
+import {
+  loadPersistentItem,
+  savePersistentItem,
+  getDirtyPortalKeys,
+  notifyPortalDataSynced,
+} from './persistentStore';
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -36,12 +41,20 @@ export const PORTAL_BACKUP_KEYS = [
   'sri_achievements_list',
 ];
 
+export interface DriveStorageQuota {
+  limitBytes?: number;
+  usageBytes?: number;
+  usageInDriveBytes?: number;
+}
+
 export interface DriveLinkMeta {
   email: string;
+  displayName?: string;
   folderId?: string;
   backupFileId?: string;
   lastSyncedAt?: string;
   autoSync: boolean;
+  storageQuota?: DriveStorageQuota;
 }
 
 export interface DriveUserInfo {
@@ -52,8 +65,126 @@ export interface DriveUserInfo {
 // In-memory cache only for OAuth access token (never stored in localStorage or sessionStorage)
 let isSigningIn = false;
 let cachedAccessToken: string | null = null;
+let cachedTokenExpiresAt = 0;
 let cachedFolderId: string | null = null;
 let cachedDriveUser: DriveUserInfo | null = null;
+
+// Eagerly initialized GIS token client so popup opens synchronously on click
+interface GisTokenResponse {
+  access_token?: string;
+  expires_in?: number;
+  error?: string;
+  error_description?: string;
+}
+
+interface GisTokenClient {
+  requestAccessToken: (opts?: { prompt?: string; login_hint?: string }) => void;
+}
+
+let gisTokenClient: GisTokenClient | null = null;
+let pendingGisResolve: ((resp: GisTokenResponse) => void) | null = null;
+let pendingGisReject: ((err: Error) => void) | null = null;
+
+function getGisOauth2() {
+  if (typeof window === 'undefined') return undefined;
+  const win = window as unknown as {
+    google?: {
+      accounts?: {
+        oauth2?: {
+          initTokenClient: (config: {
+            client_id: string;
+            scope: string;
+            callback: (resp: GisTokenResponse) => void;
+            error_callback?: (err: { type?: string; message?: string }) => void;
+          }) => GisTokenClient;
+        };
+      };
+    };
+  };
+  return win.google?.accounts?.oauth2;
+}
+
+function ensureGisTokenClient(): GisTokenClient | null {
+  if (gisTokenClient) return gisTokenClient;
+  const oauth2 = getGisOauth2();
+  const clientId = (firebaseConfig as { oAuthClientId?: string }).oAuthClientId;
+  if (!oauth2 || !clientId) return null;
+
+  gisTokenClient = oauth2.initTokenClient({
+    client_id: clientId,
+    scope: SCOPES.join(' '),
+    callback: (resp: GisTokenResponse) => {
+      if (resp.error || !resp.access_token) {
+        const msg = resp.error_description || resp.error || 'Google Drive authorization was cancelled.';
+        pendingGisReject?.(new Error(msg));
+      } else {
+        pendingGisResolve?.(resp);
+      }
+      pendingGisResolve = null;
+      pendingGisReject = null;
+    },
+    error_callback: (err) => {
+      const msg =
+        err?.type === 'popup_closed'
+          ? 'Google sign-in window was closed before completing.'
+          : err?.type === 'popup_failed_to_open'
+          ? 'Pop-up was blocked by your browser. Please allow pop-ups for this site and try again.'
+          : err?.message || 'Google Drive connection failed.';
+      pendingGisReject?.(new Error(msg));
+      pendingGisResolve = null;
+      pendingGisReject = null;
+    },
+  });
+
+  return gisTokenClient;
+}
+
+/**
+ * Call early on app mount/modal open so GIS token client is initialized
+ * BEFORE the user clicks "Sign in with Google".
+ */
+export function preloadGoogleDriveClient(): void {
+  if (typeof window === 'undefined') return;
+  if (ensureGisTokenClient()) return;
+
+  const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+  if (existing) {
+    existing.addEventListener('load', () => {
+      ensureGisTokenClient();
+    });
+    return;
+  }
+
+  const script = document.createElement('script');
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.async = true;
+  script.defer = true;
+  script.onload = () => {
+    ensureGisTokenClient();
+  };
+  document.head.appendChild(script);
+}
+
+function shouldUseDirectGis(): boolean {
+  if (typeof window === 'undefined') return true;
+  const host = window.location.hostname;
+  const inIframe = window.self !== window.top;
+  // Firebase signInWithPopup fails on ephemeral .run.app domains, localhost, or cross-origin iframes
+  return (
+    inIframe ||
+    host.endsWith('.run.app') ||
+    host === 'localhost' ||
+    host === '127.0.0.1'
+  );
+}
+
+function isTokenValid(): boolean {
+  if (!cachedAccessToken) return false;
+  if (cachedTokenExpiresAt && Date.now() >= cachedTokenExpiresAt - 60_000) {
+    return false;
+  }
+  return true;
+}
 
 export function getLinkedDriveMeta(): DriveLinkMeta | null {
   try {
@@ -81,12 +212,13 @@ export const initGoogleDriveAuth = (
   onAuthSuccess?: (user: DriveUserInfo, token: string) => void,
   onAuthFailure?: () => void
 ) => {
+  preloadGoogleDriveClient();
   return onAuthStateChanged(auth, (user: User | null) => {
-    if ((user || cachedDriveUser) && cachedAccessToken) {
+    if ((user || cachedDriveUser) && isTokenValid()) {
       const info: DriveUserInfo = user
         ? { email: user.email, displayName: user.displayName }
         : cachedDriveUser!;
-      onAuthSuccess?.(info, cachedAccessToken);
+      onAuthSuccess?.(info, cachedAccessToken!);
     } else if (!isSigningIn) {
       if (!user && !cachedDriveUser) {
         cachedAccessToken = null;
@@ -97,151 +229,161 @@ export const initGoogleDriveAuth = (
   });
 };
 
-function loadGisScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (typeof window === 'undefined') {
-      reject(new Error('Window is not available'));
-      return;
-    }
-    const win = window as unknown as { google?: { accounts?: { oauth2?: unknown } } };
-    if (win.google?.accounts?.oauth2) {
-      resolve();
-      return;
-    }
-    const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
-    if (existing) {
-      existing.addEventListener('load', () => resolve());
-      existing.addEventListener('error', () => reject(new Error('Failed to load Google Sign-In script')));
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load Google Sign-In script'));
-    document.head.appendChild(script);
-  });
-}
-
-async function signInWithGisFallback(): Promise<{
+async function fetchDriveAboutInfo(accessToken: string): Promise<{
   user: DriveUserInfo;
-  accessToken: string;
+  storageQuota?: DriveStorageQuota;
 }> {
-  const clientId = (firebaseConfig as { oAuthClientId?: string }).oAuthClientId;
-  if (!clientId) {
-    throw new Error('OAuth Client ID is missing in configuration.');
-  }
-
-  await loadGisScript();
-
-  const token = await new Promise<string>((resolve, reject) => {
-    const win = window as unknown as {
-      google?: {
-        accounts?: {
-          oauth2?: {
-            initTokenClient: (config: {
-              client_id: string;
-              scope: string;
-              callback: (resp: { access_token?: string; error?: string; error_description?: string }) => void;
-            }) => { requestAccessToken: (opts?: { prompt?: string }) => void };
-          };
-        };
-      };
-    };
-
-    const oauth2 = win.google?.accounts?.oauth2;
-    if (!oauth2) {
-      reject(new Error('Google Identity Services failed to initialize.'));
-      return;
-    }
-
-    const tokenClient = oauth2.initTokenClient({
-      client_id: clientId,
-      scope: `${SCOPES.join(' ')} https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile`,
-      callback: (resp) => {
-        if (resp.error || !resp.access_token) {
-          reject(new Error(resp.error_description || resp.error || 'Google Drive authorization cancelled.'));
-          return;
-        }
-        resolve(resp.access_token);
-      },
-    });
-
-    tokenClient.requestAccessToken({ prompt: 'consent' });
-  });
-
-  // Fetch basic profile email for display
-  let userInfo: DriveUserInfo = { email: 'Connected Google Account' };
   try {
-    const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (profileRes.ok) {
-      const profile = await profileRes.json();
-      userInfo = {
-        email: profile.email || 'Connected Google Account',
-        displayName: profile.name || null,
+    const res = await fetch(
+      'https://www.googleapis.com/drive/v3/about?fields=user(emailAddress,displayName),storageQuota(limit,usage,usageInDrive)',
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const user: DriveUserInfo = {
+        email: data.user?.emailAddress || getLinkedDriveMeta()?.email || 'Connected Google Account',
+        displayName: data.user?.displayName || null,
       };
+      const storageQuota: DriveStorageQuota | undefined = data.storageQuota
+        ? {
+            limitBytes: data.storageQuota.limit ? Number(data.storageQuota.limit) : undefined,
+            usageBytes: data.storageQuota.usage ? Number(data.storageQuota.usage) : undefined,
+            usageInDriveBytes: data.storageQuota.usageInDrive
+              ? Number(data.storageQuota.usageInDrive)
+              : undefined,
+          }
+        : undefined;
+      return { user, storageQuota };
     }
   } catch {
-    // Non-fatal
+    // non-fatal
   }
-
-  cachedAccessToken = token;
-  cachedFolderId = null;
-  cachedDriveUser = userInfo;
-
-  return { user: userInfo, accessToken: token };
+  return {
+    user: { email: getLinkedDriveMeta()?.email || 'Connected Google Account' },
+  };
 }
 
-export const signInWithGoogleDrive = async (): Promise<{
-  user: DriveUserInfo;
-  accessToken: string;
-}> => {
-  try {
-    isSigningIn = true;
-    let userInfo: DriveUserInfo;
-    let accessToken: string;
+function requestGisTokenSynchronously(promptMode: 'select_account' | 'consent' | '' = 'select_account'): Promise<GisTokenResponse> {
+  const client = ensureGisTokenClient();
+  if (!client) {
+    return Promise.reject(
+      new Error('Google Sign-In is still initializing. Please wait a second and click again.')
+    );
+  }
+
+  return new Promise<GisTokenResponse>((resolve, reject) => {
+    pendingGisResolve = resolve;
+    pendingGisReject = reject;
+
+    const meta = getLinkedDriveMeta();
+    const opts: { prompt?: string; login_hint?: string } = { prompt: promptMode };
+    if (meta?.email && meta.email !== 'Connected Google Account') {
+      opts.login_hint = meta.email;
+    }
 
     try {
-      const result = await signInWithPopup(auth, provider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      if (!credential?.accessToken) {
+      client.requestAccessToken(opts);
+    } catch (err) {
+      pendingGisResolve = null;
+      pendingGisReject = null;
+      reject(err instanceof Error ? err : new Error('Failed to open Google sign-in window.'));
+    }
+  });
+}
+
+export interface ConnectDriveResult {
+  user: DriveUserInfo;
+  accessToken: string;
+  restoredCount: number;
+  storageQuota?: DriveStorageQuota;
+}
+
+export const signInWithGoogleDrive = async (): Promise<ConnectDriveResult> => {
+  isSigningIn = true;
+  try {
+    let accessToken: string;
+    let expiresIn = 3500;
+    let userInfo: DriveUserInfo = { email: null };
+
+    const prebuiltClient = ensureGisTokenClient();
+    const meta = getLinkedDriveMeta();
+
+    // CRITICAL: If running in AI Studio (.run.app / iframe) or GIS is ready,
+    // trigger requestAccessToken synchronously BEFORE any `await` so Safari/iOS/Chrome
+    // never block the popup as non-user-initiated!
+    if (shouldUseDirectGis() || prebuiltClient) {
+      const gisPromise = requestGisTokenSynchronously(meta?.email ? '' : 'select_account').catch(
+        (err: Error) => {
+          // If silent/empty prompt wasn't granted yet, retry with explicit select_account
+          if (meta?.email && err.message.includes('consent')) {
+            return requestGisTokenSynchronously('select_account');
+          }
+          throw err;
+        }
+      );
+      const resp = await gisPromise;
+      if (!resp.access_token) {
         throw new Error('Failed to obtain Google Drive access token.');
       }
-      accessToken = credential.accessToken;
-      userInfo = { email: result.user.email, displayName: result.user.displayName };
-      cachedAccessToken = accessToken;
-      cachedFolderId = null;
-      cachedDriveUser = userInfo;
-    } catch (firebaseErr: unknown) {
-      const code = (firebaseErr as { code?: string })?.code || '';
-      const message = (firebaseErr as { message?: string })?.message || '';
-      if (
-        code === 'auth/unauthorized-domain' ||
-        code === 'auth/operation-not-supported-in-this-environment' ||
-        message.includes('unauthorized-domain')
-      ) {
-        const gisResult = await signInWithGisFallback();
-        userInfo = gisResult.user;
-        accessToken = gisResult.accessToken;
-      } else {
-        throw firebaseErr;
+      accessToken = resp.access_token;
+      expiresIn = resp.expires_in || 3500;
+    } else {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        if (!credential?.accessToken) {
+          throw new Error('Failed to obtain Google Drive access token.');
+        }
+        accessToken = credential.accessToken;
+        userInfo = { email: result.user.email, displayName: result.user.displayName };
+      } catch (firebaseErr: unknown) {
+        const code = (firebaseErr as { code?: string })?.code || '';
+        if (
+          code === 'auth/unauthorized-domain' ||
+          code === 'auth/operation-not-supported-in-this-environment'
+        ) {
+          const resp = await requestGisTokenSynchronously('select_account');
+          accessToken = resp.access_token!;
+          expiresIn = resp.expires_in || 3500;
+        } else {
+          throw firebaseErr;
+        }
       }
     }
+
+    cachedAccessToken = accessToken;
+    cachedTokenExpiresAt = Date.now() + expiresIn * 1000;
+    cachedFolderId = null;
+
+    const about = await fetchDriveAboutInfo(accessToken);
+    if (!userInfo.email) {
+      userInfo = about.user;
+    }
+    cachedDriveUser = userInfo;
 
     const existingMeta = getLinkedDriveMeta();
     const folderId = await getOrCreateAppFolder(accessToken).catch(() => existingMeta?.folderId);
     saveLinkedDriveMeta({
       email: userInfo.email || existingMeta?.email || 'Connected Account',
+      displayName: userInfo.displayName || existingMeta?.displayName,
       folderId,
       backupFileId: existingMeta?.backupFileId,
       lastSyncedAt: existingMeta?.lastSyncedAt,
       autoSync: existingMeta?.autoSync ?? true,
+      storageQuota: about.storageQuota || existingMeta?.storageQuota,
     });
 
-    return { user: userInfo, accessToken };
+    // Automatically restore/merge any saved items from Google Drive so nothing is ever lost!
+    const restoredCount = await syncWithGoogleDriveBackup().catch(() => 0);
+
+    return {
+      user: userInfo,
+      accessToken,
+      restoredCount,
+      storageQuota: about.storageQuota,
+    };
   } finally {
     isSigningIn = false;
   }
@@ -249,6 +391,7 @@ export const signInWithGoogleDrive = async (): Promise<{
 
 export const signOutGoogleDrive = async (): Promise<void> => {
   cachedAccessToken = null;
+  cachedTokenExpiresAt = 0;
   cachedFolderId = null;
   cachedDriveUser = null;
   saveLinkedDriveMeta(null);
@@ -260,13 +403,17 @@ export const signOutGoogleDrive = async (): Promise<void> => {
 };
 
 export const getDriveAccessToken = (): string | null => {
-  return cachedAccessToken;
+  return isTokenValid() ? cachedAccessToken : null;
 };
 
 export const getCurrentDriveUser = (): DriveUserInfo | null => {
   if (cachedDriveUser) return cachedDriveUser;
   if (auth.currentUser) {
     return { email: auth.currentUser.email, displayName: auth.currentUser.displayName };
+  }
+  const meta = getLinkedDriveMeta();
+  if (meta?.email) {
+    return { email: meta.email, displayName: meta.displayName };
   }
   return null;
 };
@@ -297,6 +444,9 @@ async function getOrCreateAppFolder(accessToken: string): Promise<string> {
       cachedFolderId = searchData.files[0].id;
       return cachedFolderId!;
     }
+  } else if (searchRes.status === 401) {
+    cachedAccessToken = null;
+    throw new Error('Google Drive session expired. Please reconnect.');
   }
 
   const createRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
@@ -319,9 +469,9 @@ async function getOrCreateAppFolder(accessToken: string): Promise<string> {
   return cachedFolderId!;
 }
 
-async function makeFilePublicReader(accessToken: string, fileId: string): Promise<void> {
+async function makeFilePublicReader(accessToken: string, fileId: string): Promise<boolean> {
   try {
-    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -332,8 +482,9 @@ async function makeFilePublicReader(accessToken: string, fileId: string): Promis
         type: 'anyone',
       }),
     });
+    return res.ok;
   } catch {
-    // Non-fatal if organization policy restricts anyone-with-link
+    return false;
   }
 }
 
@@ -346,8 +497,17 @@ export interface DriveMediaFile {
   url: string;
 }
 
+export function buildDriveMediaUrl(fileId: string, mimeType?: string): string {
+  const isVideo = (mimeType || '').startsWith('video/');
+  if (isVideo) {
+    return `https://drive.google.com/file/d/${fileId}/preview`;
+  }
+  // Google Drive's official thumbnail CDN is far more resilient than lh3.googleusercontent.com/d/ across Safari & Chrome
+  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1600`;
+}
+
 export async function uploadFileToGoogleDrive(file: File): Promise<DriveMediaFile> {
-  const accessToken = cachedAccessToken;
+  const accessToken = getDriveAccessToken();
   if (!accessToken) {
     throw new Error('Google Drive session needs to be unlocked.');
   }
@@ -388,23 +548,42 @@ export async function uploadFileToGoogleDrive(file: File): Promise<DriveMediaFil
   const uploaded = await uploadRes.json();
   await makeFilePublicReader(accessToken, uploaded.id);
 
-  const isVideo = (uploaded.mimeType || file.type || '').startsWith('video/');
-  const url = isVideo
-    ? `https://drive.google.com/file/d/${uploaded.id}/preview`
-    : `https://lh3.googleusercontent.com/d/${uploaded.id}`;
+  const mimeType = uploaded.mimeType || file.type || '';
+  const url = buildDriveMediaUrl(uploaded.id, mimeType);
 
   return {
     id: uploaded.id,
     name: uploaded.name,
-    mimeType: uploaded.mimeType,
+    mimeType,
     size: uploaded.size,
     createdTime: uploaded.createdTime,
     url,
   };
 }
 
+export async function fetchDriveFileBlob(fileId: string): Promise<Blob | null> {
+  const accessToken = getDriveAccessToken();
+  if (!accessToken) return null;
+
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return null;
+    return await res.blob();
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchDriveFileBlobUrl(fileId: string): Promise<string | null> {
+  const blob = await fetchDriveFileBlob(fileId);
+  if (!blob) return null;
+  return URL.createObjectURL(blob);
+}
+
 export async function listDriveMediaFiles(): Promise<DriveMediaFile[]> {
-  const accessToken = cachedAccessToken;
+  const accessToken = getDriveAccessToken();
   if (!accessToken) return [];
 
   const folderId = await getOrCreateAppFolder(accessToken);
@@ -412,7 +591,7 @@ export async function listDriveMediaFiles(): Promise<DriveMediaFile[]> {
     `'${folderId}' in parents and trashed = false and name != '${BACKUP_FILE_NAME}'`
   );
   const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=createdTime desc&pageSize=50&fields=files(id,name,mimeType,size,createdTime)`,
+    `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=createdTime desc&pageSize=100&fields=files(id,name,mimeType,size,createdTime)`,
     {
       headers: { Authorization: `Bearer ${accessToken}` },
     }
@@ -425,20 +604,20 @@ export async function listDriveMediaFiles(): Promise<DriveMediaFile[]> {
 
   const data = await res.json();
   const files = Array.isArray(data.files) ? data.files : [];
-  return files.map((f: { id: string; name: string; mimeType: string; size?: string; createdTime?: string }) => ({
-    id: f.id,
-    name: f.name,
-    mimeType: f.mimeType,
-    size: f.size,
-    createdTime: f.createdTime,
-    url: f.mimeType?.startsWith('video/')
-      ? `https://drive.google.com/file/d/${f.id}/preview`
-      : `https://lh3.googleusercontent.com/d/${f.id}`,
-  }));
+  return files.map(
+    (f: { id: string; name: string; mimeType: string; size?: string; createdTime?: string }) => ({
+      id: f.id,
+      name: f.name,
+      mimeType: f.mimeType,
+      size: f.size,
+      createdTime: f.createdTime,
+      url: buildDriveMediaUrl(f.id, f.mimeType),
+    })
+  );
 }
 
 export async function deleteDriveFile(fileId: string): Promise<void> {
-  const accessToken = cachedAccessToken;
+  const accessToken = getDriveAccessToken();
   if (!accessToken) throw new Error('Google Drive session is not active.');
 
   const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
@@ -453,7 +632,7 @@ export async function deleteDriveFile(fileId: string): Promise<void> {
 }
 
 export async function findDriveBackupFile(): Promise<{ id: string; modifiedTime?: string } | null> {
-  const accessToken = cachedAccessToken;
+  const accessToken = getDriveAccessToken();
   if (!accessToken) return null;
 
   const folderId = await getOrCreateAppFolder(accessToken);
@@ -471,11 +650,34 @@ export async function findDriveBackupFile(): Promise<{ id: string; modifiedTime?
   return Array.isArray(data.files) && data.files.length > 0 ? data.files[0] : null;
 }
 
+function mergeArrayById(localArr: unknown[], driveArr: unknown[]): unknown[] {
+  const byId = new Map<string, Record<string, unknown>>();
+  const orderedIds: string[] = [];
+
+  for (const item of driveArr) {
+    if (item && typeof item === 'object' && 'id' in item) {
+      const id = String((item as { id: unknown }).id);
+      byId.set(id, item as Record<string, unknown>);
+      orderedIds.push(id);
+    }
+  }
+  for (const item of localArr) {
+    if (item && typeof item === 'object' && 'id' in item) {
+      const id = String((item as { id: unknown }).id);
+      if (!byId.has(id)) {
+        orderedIds.unshift(id);
+      }
+      byId.set(id, { ...(byId.get(id) || {}), ...(item as Record<string, unknown>) });
+    }
+  }
+  return orderedIds.map((id) => byId.get(id)!).filter(Boolean);
+}
+
 export async function saveBackupToGoogleDrive(
   payload: Record<string, unknown>,
   existingFileId?: string
 ): Promise<string> {
-  const accessToken = cachedAccessToken;
+  const accessToken = getDriveAccessToken();
   if (!accessToken) throw new Error('Google Drive session is not active.');
 
   const folderId = await getOrCreateAppFolder(accessToken);
@@ -540,7 +742,7 @@ export async function saveBackupToGoogleDrive(
 }
 
 export async function restoreBackupFromGoogleDrive(): Promise<Record<string, unknown> | null> {
-  const accessToken = cachedAccessToken;
+  const accessToken = getDriveAccessToken();
   if (!accessToken) throw new Error('Google Drive session is not active.');
 
   const existing = await findDriveBackupFile();
@@ -556,33 +758,160 @@ export async function restoreBackupFromGoogleDrive(): Promise<Record<string, unk
   return (await res.json()) as Record<string, unknown>;
 }
 
+/**
+ * Smart non-destructive sync on Drive connect:
+ * 1. Downloads existing `sri_portal_backup.json` from Google Drive (if any).
+ * 2. Restores/merges any Drive items missing locally into IndexedDB & notifies the UI.
+ * 3. Only writes back locally modified ("dirty") keys so a fresh session NEVER wipes Drive items.
+ */
+export async function syncWithGoogleDriveBackup(): Promise<number> {
+  const accessToken = getDriveAccessToken();
+  if (!accessToken) return 0;
+
+  let restoredKeys = 0;
+  const existing = await findDriveBackupFile();
+  let driveData: Record<string, unknown> = {};
+
+  if (existing) {
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${existing.id}?alt=media`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      if (res.ok) {
+        const parsed = (await res.json()) as { data?: Record<string, unknown> };
+        if (parsed?.data && typeof parsed.data === 'object') {
+          driveData = parsed.data;
+        }
+      }
+    } catch {
+      // ignore read failure
+    }
+  }
+
+  const dirtySet = new Set(getDirtyPortalKeys());
+  const mergedPayload: Record<string, unknown> = { ...driveData };
+
+  for (const key of PORTAL_BACKUP_KEYS) {
+    const localVal = await loadPersistentItem<unknown>(key);
+    const driveVal = driveData[key];
+
+    if (driveVal !== undefined && driveVal !== null) {
+      if (localVal === null || localVal === undefined || !dirtySet.has(key)) {
+        // Local has no edits for this key: restore authoritative Drive version
+        await savePersistentItem(key, driveVal, { skipDirty: true, skipDriveSync: true });
+        restoredKeys += 1;
+      } else if (Array.isArray(localVal) && Array.isArray(driveVal)) {
+        // Both modified: merge unique items by id
+        const combined = mergeArrayById(localVal, driveVal);
+        mergedPayload[key] = combined;
+        await savePersistentItem(key, combined, { skipDirty: true, skipDriveSync: true });
+        restoredKeys += 1;
+      } else {
+        mergedPayload[key] = localVal;
+      }
+    } else if (localVal !== null && localVal !== undefined) {
+      mergedPayload[key] = localVal;
+    }
+  }
+
+  // Validate cached image integrity against synced Drive data & warm verified previews BEFORE notifying UI
+  try {
+    const { validateAndWarmMediaFromPersistedData } = await import('./imageUpload');
+    await validateAndWarmMediaFromPersistedData(mergedPayload);
+  } catch {
+    // Non-fatal
+  }
+
+  if (restoredKeys > 0) {
+    notifyPortalDataSynced();
+  }
+
+  // If there were local edits not yet in Drive, upload the merged backup
+  if (Object.keys(mergedPayload).length > 0 && (!existing || dirtySet.size > 0)) {
+    await saveBackupToGoogleDrive(
+      { exportedAt: new Date().toISOString(), data: mergedPayload },
+      existing?.id
+    );
+  } else if (existing) {
+    const meta = getLinkedDriveMeta();
+    if (meta) {
+      saveLinkedDriveMeta({
+        ...meta,
+        backupFileId: existing.id,
+        lastSyncedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  return restoredKeys;
+}
+
 let autoSyncTimer: ReturnType<typeof setTimeout> | null = null;
 
+async function flushDriveAutoSyncNow(): Promise<void> {
+  const meta = getLinkedDriveMeta();
+  const accessToken = getDriveAccessToken();
+  if (!meta?.autoSync || !accessToken) return;
+
+  try {
+    const existing = await findDriveBackupFile();
+    let existingData: Record<string, unknown> = {};
+    if (existing) {
+      try {
+        const res = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${existing.id}?alt=media`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        if (res.ok) {
+          const parsed = (await res.json()) as { data?: Record<string, unknown> };
+          if (parsed?.data && typeof parsed.data === 'object') {
+            existingData = parsed.data;
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    const dirtySet = new Set(getDirtyPortalKeys());
+    const dataMap: Record<string, unknown> = { ...existingData };
+
+    for (const key of PORTAL_BACKUP_KEYS) {
+      const localVal = await loadPersistentItem<unknown>(key);
+      if (localVal === null || localVal === undefined) continue;
+
+      if (!existingData[key] || dirtySet.has(key)) {
+        if (Array.isArray(localVal) && Array.isArray(existingData[key])) {
+          // Preserve items from Drive that aren't in local unless local is authoritative
+          dataMap[key] = localVal;
+        } else {
+          dataMap[key] = localVal;
+        }
+      }
+    }
+
+    await saveBackupToGoogleDrive(
+      { exportedAt: new Date().toISOString(), data: dataMap },
+      existing?.id
+    );
+  } catch {
+    // Non-fatal background sync
+  }
+}
+
 /**
- * Schedules a background sync of portal edits to Google Drive whenever
+ * Schedules a fast background sync of portal edits to Google Drive whenever
  * an active Drive session and auto-sync are enabled.
  */
 export function scheduleDriveAutoSync(): void {
   const meta = getLinkedDriveMeta();
-  if (!meta?.autoSync || !cachedAccessToken) return;
+  if (!meta?.autoSync || !getDriveAccessToken()) return;
 
   if (autoSyncTimer) clearTimeout(autoSyncTimer);
-  autoSyncTimer = setTimeout(async () => {
-    try {
-      const dataMap: Record<string, unknown> = {};
-      for (const key of PORTAL_BACKUP_KEYS) {
-        const val = await loadPersistentItem<unknown>(key);
-        if (val !== null) {
-          dataMap[key] = val;
-        }
-      }
-      const existing = await findDriveBackupFile();
-      await saveBackupToGoogleDrive(
-        { exportedAt: new Date().toISOString(), data: dataMap },
-        existing?.id
-      );
-    } catch {
-      // Non-fatal background sync
-    }
-  }, 1500);
+  autoSyncTimer = setTimeout(() => {
+    void flushDriveAutoSyncNow();
+  }, 500);
 }

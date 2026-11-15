@@ -16,7 +16,11 @@ import {
 } from 'lucide-react';
 import { Region, Language } from '../types';
 import { translations } from '../i18n/translations';
-import { readFileAsDataUrl, normalizeMediaUrl } from '../utils/imageUpload';
+import {
+  readFileAsDataUrl,
+  normalizeMediaUrl,
+  handleMediaImageError,
+} from '../utils/imageUpload';
 
 interface RegionModalProps {
   region: Region | null;
@@ -45,6 +49,8 @@ export const RegionModal: React.FC<RegionModalProps> = ({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [formData, setFormData] = useState<Region>({ ...region });
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   useEffect(() => {
     setViewLang(currentLang);
@@ -63,6 +69,8 @@ export const RegionModal: React.FC<RegionModalProps> = ({
       : '/cultural_images/indian_gaon.jpg';
 
   const handlePhotoUpload = async (file: File, isGallery = false) => {
+    setUploadError('');
+    setIsUploading(true);
     try {
       const dataUrl = await readFileAsDataUrl(file);
       if (isGallery) {
@@ -75,6 +83,9 @@ export const RegionModal: React.FC<RegionModalProps> = ({
       }
     } catch (err) {
       console.error('Failed to read image file', err);
+      setUploadError(err instanceof Error ? err.message : 'Photo upload failed.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -628,7 +639,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                       src={normalizeMediaUrl(formData.image) || fallbackImg}
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        e.currentTarget.src = fallbackImg;
+                        void handleMediaImageError(e.currentTarget, formData.image, fallbackImg);
                       }}
                       alt="Preview"
                       className="w-24 h-20 rounded-lg object-cover border border-amber-500/40 shrink-0"
@@ -644,17 +655,21 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                     />
                     <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold cursor-pointer">
                       <Upload className="h-3.5 w-3.5" />
-                      <span>Upload Cover Photo</span>
+                      <span>{isUploading ? 'Uploading...' : 'Upload Cover Photo'}</span>
                       <input
                         type="file"
                         accept="image/*"
+                        disabled={isUploading}
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) handlePhotoUpload(file, false);
+                          if (file) void handlePhotoUpload(file, false);
                         }}
                       />
                     </label>
+                    {uploadError && (
+                      <p className="text-[11px] text-red-400">{uploadError}</p>
+                    )}
                   </div>
                 </div>
 
@@ -679,14 +694,15 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                     </button>
                     <label className="inline-flex items-center gap-1 rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-semibold text-amber-300 cursor-pointer">
                       <Upload className="h-3.5 w-3.5" />
-                      Upload
+                      <span>{isUploading ? 'Uploading...' : 'Upload'}</span>
                       <input
                         type="file"
                         accept="image/*"
+                        disabled={isUploading}
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) handlePhotoUpload(file, true);
+                          if (file) void handlePhotoUpload(file, true);
                         }}
                       />
                     </label>
@@ -699,7 +715,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                             src={normalizeMediaUrl(imgUrl)}
                             referrerPolicy="no-referrer"
                             onError={(e) => {
-                              e.currentTarget.src = fallbackImg;
+                              void handleMediaImageError(e.currentTarget, imgUrl, fallbackImg);
                             }}
                             alt={`Gallery ${idx + 1}`}
                             className="h-full w-full object-cover"
@@ -733,9 +749,10 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-amber-500 hover:bg-amber-400 px-6 py-2 font-bold text-slate-950 shadow-lg cursor-pointer"
+                  disabled={isUploading}
+                  className="rounded-lg bg-amber-500 hover:bg-amber-400 px-6 py-2 font-bold text-slate-950 shadow-lg cursor-pointer disabled:opacity-50"
                 >
-                  Save Region Changes
+                  {isUploading ? 'Uploading Photo...' : 'Save Region Changes'}
                 </button>
               </div>
             </form>
@@ -748,7 +765,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                 src={normalizeMediaUrl(region.image) || fallbackImg}
                 referrerPolicy="no-referrer"
                 onError={(e) => {
-                  e.currentTarget.src = fallbackImg;
+                  void handleMediaImageError(e.currentTarget, region.image, fallbackImg);
                 }}
                 alt={regionName}
                 className="h-full w-full object-cover"
@@ -916,7 +933,7 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                           src={src}
                           referrerPolicy="no-referrer"
                           onError={(e) => {
-                            e.currentTarget.src = fallbackImg;
+                            void handleMediaImageError(e.currentTarget, src, fallbackImg);
                           }}
                           alt={`${regionName} ${i + 1}`}
                           className="h-full w-full object-cover"

@@ -5,8 +5,14 @@ import {
   readFileAsDataUrl,
   normalizeMediaUrl,
   getDriveVideoEmbedUrl,
+  handleMediaImageError,
 } from '../utils/imageUpload';
-import { savePersistentItem, loadPersistentItem } from '../utils/persistentStore';
+import {
+  savePersistentItem,
+  loadPersistentItem,
+  readSyncCache,
+  PORTAL_DATA_SYNCED_EVENT,
+} from '../utils/persistentStore';
 import {
   Award,
   Trophy,
@@ -141,38 +147,36 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
   }, [currentLang]);
 
   const [featured, setFeatured] = useState<FeaturedAchievement>(() => {
-    try {
-      const saved = localStorage.getItem('sri_featured_achievement');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.videoUrl) return { ...DEFAULT_FEATURED, ...parsed };
-      }
-    } catch {}
+    const saved = readSyncCache<FeaturedAchievement>('sri_featured_achievement');
+    if (saved && saved.videoUrl) return { ...DEFAULT_FEATURED, ...saved };
     return DEFAULT_FEATURED;
   });
 
   const [items, setItems] = useState<AchievementItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('sri_achievements_list');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
+    const saved = readSyncCache<AchievementItem[]>('sri_achievements_list');
+    if (Array.isArray(saved) && saved.length > 0) return saved;
     return DEFAULT_ITEMS;
   });
 
   useEffect(() => {
-    loadPersistentItem<FeaturedAchievement>('sri_featured_achievement').then((saved) => {
-      if (saved && saved.videoUrl) {
-        setFeatured({ ...DEFAULT_FEATURED, ...saved });
-      }
-    });
-    loadPersistentItem<AchievementItem[]>('sri_achievements_list').then((saved) => {
-      if (Array.isArray(saved) && saved.length > 0) {
-        setItems(saved);
-      }
-    });
+    const hydrateAchievements = () => {
+      loadPersistentItem<FeaturedAchievement>('sri_featured_achievement').then((saved) => {
+        if (saved && saved.videoUrl) {
+          setFeatured({ ...DEFAULT_FEATURED, ...saved });
+        }
+      });
+      loadPersistentItem<AchievementItem[]>('sri_achievements_list').then((saved) => {
+        if (Array.isArray(saved) && saved.length > 0) {
+          setItems(saved);
+        }
+      });
+    };
+
+    hydrateAchievements();
+    window.addEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateAchievements);
+    return () => {
+      window.removeEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateAchievements);
+    };
   }, []);
 
   const saveFeatured = (next: FeaturedAchievement) => {
@@ -192,6 +196,8 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
   // Add/Edit Item Modal
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const [itemForm, setItemForm] = useState<Omit<AchievementItem, 'id'>>({
     type: 'certificate',
     titleEn: '',
@@ -247,6 +253,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
 
   const openAddItemModal = () => {
     setEditingItemId(null);
+    setUploadError('');
     setItemForm({
       type: 'certificate',
       titleEn: '',
@@ -524,7 +531,13 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                       src={previewImg}
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        e.currentTarget.src = '/cultural_images/novgorod_kremlin.jpg';
+                        void handleMediaImageError(
+                          e.currentTarget,
+                          item.type === 'video' ? item.thumbnailUrl : item.mediaUrl,
+                          item.type === 'video'
+                            ? '/cultural_images/smolensk_fortress.jpg'
+                            : '/cultural_images/novgorod_kremlin.jpg'
+                        );
                       }}
                       alt={title}
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -655,21 +668,34 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                   />
                   <label className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-2 font-semibold text-amber-300 cursor-pointer">
                     <Upload className="h-3.5 w-3.5" />
-                    <span>Upload Video</span>
+                    <span>{isUploadingMedia ? 'Uploading...' : 'Upload Video'}</span>
                     <input
                       type="file"
                       accept="video/*"
+                      disabled={isUploadingMedia}
                       className="hidden"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
+                        if (!file) return;
+                        setUploadError('');
+                        setIsUploadingMedia(true);
+                        try {
                           const dataUrl = await readFileAsDataUrl(file);
-                          setFeatForm({ ...featForm, videoUrl: dataUrl });
+                          setFeatForm((prev) => ({ ...prev, videoUrl: dataUrl }));
+                        } catch (err) {
+                          setUploadError(
+                            err instanceof Error ? err.message : 'Failed to upload video.'
+                          );
+                        } finally {
+                          setIsUploadingMedia(false);
                         }
                       }}
                     />
                   </label>
                 </div>
+                {uploadError && (
+                  <p className="mt-1 text-[11px] text-red-400">{uploadError}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -783,10 +809,11 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 px-5 py-2 font-bold text-slate-950 cursor-pointer"
+                  disabled={isUploadingMedia}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 px-5 py-2 font-bold text-slate-950 cursor-pointer disabled:opacity-50"
                 >
                   <Save className="h-4 w-4" />
-                  Save Featured Frame
+                  {isUploadingMedia ? 'Uploading Media...' : 'Save Featured Frame'}
                 </button>
               </div>
             </form>
@@ -930,21 +957,34 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                   />
                   <label className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 px-3 py-2 font-semibold text-amber-300 cursor-pointer">
                     <Upload className="h-3.5 w-3.5" />
-                    <span>Upload from Device</span>
+                    <span>{isUploadingMedia ? 'Uploading...' : 'Upload from Device'}</span>
                     <input
                       type="file"
                       accept={itemForm.type === 'video' ? 'video/*' : 'image/*'}
+                      disabled={isUploadingMedia}
                       className="hidden"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
+                        if (!file) return;
+                        setUploadError('');
+                        setIsUploadingMedia(true);
+                        try {
                           const dataUrl = await readFileAsDataUrl(file);
-                          setItemForm({ ...itemForm, mediaUrl: dataUrl });
+                          setItemForm((prev) => ({ ...prev, mediaUrl: dataUrl }));
+                        } catch (err) {
+                          setUploadError(
+                            err instanceof Error ? err.message : 'Failed to upload file.'
+                          );
+                        } finally {
+                          setIsUploadingMedia(false);
                         }
                       }}
                     />
                   </label>
                 </div>
+                {uploadError && (
+                  <p className="text-[11px] text-red-400">{uploadError}</p>
+                )}
 
                 {itemForm.type === 'video' && (
                   <div className="pt-2">
@@ -970,10 +1010,17 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 px-5 py-2 font-bold text-slate-950 cursor-pointer"
+                  disabled={isUploadingMedia}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 px-5 py-2 font-bold text-slate-950 cursor-pointer disabled:opacity-50"
                 >
                   <Save className="h-4 w-4" />
-                  <span>{editingItemId ? 'Save Changes' : 'Add to Achievements'}</span>
+                  <span>
+                    {isUploadingMedia
+                      ? 'Uploading Media...'
+                      : editingItemId
+                      ? 'Save Changes'
+                      : 'Add to Achievements'}
+                  </span>
                 </button>
               </div>
             </form>
@@ -1011,7 +1058,11 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({
                     }
                     referrerPolicy="no-referrer"
                     onError={(e) => {
-                      e.currentTarget.src = '/cultural_images/novgorod_kremlin.jpg';
+                      void handleMediaImageError(
+                        e.currentTarget,
+                        activePreviewItem.mediaUrl,
+                        '/cultural_images/novgorod_kremlin.jpg'
+                      );
                     }}
                     alt={pick(
                       activePreviewItem.titleEn,

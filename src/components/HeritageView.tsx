@@ -3,7 +3,11 @@ import { Region, VideoItem, SoulStoryEpisode, Language, VideoCategory } from '..
 import { translations } from '../i18n/translations';
 import { InteractiveMap } from './InteractiveMap';
 import { formatVideoEmbedUrl } from './VideoPlayerModal';
-import { normalizeMediaUrl, readFileAsDataUrl } from '../utils/imageUpload';
+import {
+  normalizeMediaUrl,
+  readFileAsDataUrl,
+  handleMediaImageError,
+} from '../utils/imageUpload';
 import {
   Film,
   Play,
@@ -104,6 +108,7 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
   const [regLng, setRegLng] = useState('37.61');
   const [regImage, setRegImage] = useState('');
   const [regVideoUrl, setRegVideoUrl] = useState('');
+  const [isUploadingRegImage, setIsUploadingRegImage] = useState(false);
 
   // Admin Edit Video State
   const [editingVideo, setEditingVideo] = useState<(VideoItem | SoulStoryEpisode) | null>(null);
@@ -575,7 +580,7 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
                         src={normalizeMediaUrl(region.image) || fallbackImg}
                         referrerPolicy="no-referrer"
                         onError={(e) => {
-                          e.currentTarget.src = fallbackImg;
+                          void handleMediaImageError(e.currentTarget, region.image, fallbackImg);
                         }}
                         alt={name}
                         loading="lazy"
@@ -685,10 +690,14 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
               >
                 <div className="relative aspect-video w-full overflow-hidden bg-slate-950">
                   <img
-                    src={episode.thumbnail}
+                    src={normalizeMediaUrl(episode.thumbnail) || '/cultural_images/novgorod_kremlin.jpg'}
                     referrerPolicy="no-referrer"
                     onError={(e) => {
-                      e.currentTarget.src = '/cultural_images/novgorod_kremlin.jpg';
+                      void handleMediaImageError(
+                        e.currentTarget,
+                        episode.thumbnail,
+                        '/cultural_images/novgorod_kremlin.jpg'
+                      );
                     }}
                     alt={episode.title}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
@@ -823,10 +832,14 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
               >
                 <div className="relative aspect-video w-full overflow-hidden bg-black">
                   <img
-                    src={vid.thumbnail}
+                    src={normalizeMediaUrl(vid.thumbnail) || '/cultural_images/novgorod_kremlin.jpg'}
                     referrerPolicy="no-referrer"
                     onError={(e) => {
-                      e.currentTarget.src = '/cultural_images/novgorod_kremlin.jpg';
+                      void handleMediaImageError(
+                        e.currentTarget,
+                        vid.thumbnail,
+                        '/cultural_images/novgorod_kremlin.jpg'
+                      );
                     }}
                     alt={vid.title}
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -1178,16 +1191,21 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
                   />
                   <label className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-2 text-xs font-semibold text-amber-300 cursor-pointer">
                     <Upload className="h-3.5 w-3.5" />
-                    <span>Upload Photo</span>
+                    <span>{isUploadingRegImage ? 'Uploading...' : 'Upload Photo'}</span>
                     <input
                       type="file"
                       accept="image/*"
+                      disabled={isUploadingRegImage}
                       className="hidden"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
+                        if (!file) return;
+                        setIsUploadingRegImage(true);
+                        try {
                           const dataUrl = await readFileAsDataUrl(file);
                           setRegImage(dataUrl);
+                        } finally {
+                          setIsUploadingRegImage(false);
                         }
                       }}
                     />
@@ -1205,9 +1223,10 @@ export const HeritageView: React.FC<HeritageViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-amber-500 hover:bg-amber-400 px-5 py-2 font-bold text-slate-950 cursor-pointer"
+                  disabled={isUploadingRegImage}
+                  className="rounded-lg bg-amber-500 hover:bg-amber-400 px-5 py-2 font-bold text-slate-950 cursor-pointer disabled:opacity-50"
                 >
-                  Add Region to Atlas
+                  {isUploadingRegImage ? 'Uploading Photo...' : 'Add Region to Atlas'}
                 </button>
               </div>
             </form>

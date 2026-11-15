@@ -3,8 +3,17 @@ import { Author, Language } from '../types';
 import { authorsData } from '../data/literatureData';
 import { translations } from '../i18n/translations';
 import { BookOpen, Quote, Sparkles, Feather, Calendar, Clock, Bookmark, X, Edit3, Upload } from 'lucide-react';
-import { readFileAsDataUrl } from '../utils/imageUpload';
-import { savePersistentItem, loadPersistentItem } from '../utils/persistentStore';
+import {
+  readFileAsDataUrl,
+  normalizeMediaUrl,
+  handleMediaImageError,
+} from '../utils/imageUpload';
+import {
+  savePersistentItem,
+  loadPersistentItem,
+  readSyncCache,
+  PORTAL_DATA_SYNCED_EVENT,
+} from '../utils/persistentStore';
 
 interface LiteratureViewProps {
   currentLang: Language;
@@ -14,32 +23,34 @@ interface LiteratureViewProps {
 export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isAdmin = false }) => {
   const t = translations[currentLang];
   
-  // Dynamic authors state with localStorage persistence
+  // Dynamic authors state with synchronous cache hydration
   const [authors, setAuthors] = useState<Author[]>(() => {
-    const saved = localStorage.getItem('sri_custom_authors');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {
-        console.warn('Failed to parse saved authors', e);
-      }
-    }
+    const parsed = readSyncCache<Author[]>('sri_custom_authors');
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     return authorsData;
   });
 
   React.useEffect(() => {
-    loadPersistentItem<Author[]>('sri_custom_authors').then((saved) => {
-      if (Array.isArray(saved) && saved.length > 0) {
-        setAuthors(saved);
-        setSelectedAuthor((prev) => (prev ? saved.find((a) => a.id === prev.id) || saved[0] : saved[0]));
-      }
-    });
+    const hydrateAuthors = () => {
+      loadPersistentItem<Author[]>('sri_custom_authors').then((saved) => {
+        if (Array.isArray(saved) && saved.length > 0) {
+          setAuthors(saved);
+          setSelectedAuthor((prev) => (prev ? saved.find((a) => a.id === prev.id) || saved[0] : saved[0]));
+        }
+      });
+    };
+
+    hydrateAuthors();
+    window.addEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateAuthors);
+    return () => {
+      window.removeEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateAuthors);
+    };
   }, []);
 
   const [selectedEra, setSelectedEra] = useState<string>('All');
   const [selectedAuthor, setSelectedAuthor] = useState<Author | null>(() => authors[0] || authorsData[0]);
   const [editingAuthor, setEditingAuthor] = useState<Author | null>(null);
+  const [isUploadingPortrait, setIsUploadingPortrait] = useState<boolean>(false);
 
   const eras = ['All', 'Classical Literature', 'Soviet Literature', 'Poetry'];
 
@@ -53,11 +64,14 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
   };
 
   const handlePortraitUpload = async (file: File) => {
+    setIsUploadingPortrait(true);
     try {
       const dataUrl = await readFileAsDataUrl(file);
       setEditingAuthor((prev) => (prev ? { ...prev, portrait: dataUrl } : null));
     } catch (err) {
       console.error('Failed to read portrait file', err);
+    } finally {
+      setIsUploadingPortrait(false);
     }
   };
 
@@ -65,14 +79,19 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
     e.preventDefault();
     if (!editingAuthor) return;
 
+    const normalizedAuthor: Author = {
+      ...editingAuthor,
+      portrait: normalizeMediaUrl(editingAuthor.portrait),
+    };
+
     setAuthors((prev) => {
-      const updated = prev.map((a) => (a.id === editingAuthor.id ? editingAuthor : a));
+      const updated = prev.map((a) => (a.id === normalizedAuthor.id ? normalizedAuthor : a));
       void savePersistentItem('sri_custom_authors', updated);
       return updated;
     });
 
-    if (selectedAuthor?.id === editingAuthor.id) {
-      setSelectedAuthor(editingAuthor);
+    if (selectedAuthor?.id === normalizedAuthor.id) {
+      setSelectedAuthor(normalizedAuthor);
     }
     setEditingAuthor(null);
   };
@@ -122,7 +141,15 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
                   }`}
                 >
                   <img
-                    src={author.portrait}
+                    src={normalizeMediaUrl(author.portrait)}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      void handleMediaImageError(
+                        e.currentTarget,
+                        author.portrait,
+                        '/cultural_images/novgorod_kremlin.jpg'
+                      );
+                    }}
                     alt={author.name}
                     className="h-full w-full object-cover"
                   />
@@ -163,7 +190,15 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
           <div className="lg:col-span-8 rounded-3xl border border-amber-500/30 bg-[#0c1424] p-6 sm:p-10 shadow-2xl space-y-8">
             <div className="flex flex-col sm:flex-row items-start gap-6 border-b border-slate-800 pb-6">
               <img
-                src={selectedAuthor.portrait}
+                src={normalizeMediaUrl(selectedAuthor.portrait)}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  void handleMediaImageError(
+                    e.currentTarget,
+                    selectedAuthor.portrait,
+                    '/cultural_images/novgorod_kremlin.jpg'
+                  );
+                }}
                 alt={selectedAuthor.name}
                 className="h-32 w-32 rounded-2xl object-cover border-2 border-amber-400/60 shadow-xl shrink-0"
               />
@@ -298,7 +333,15 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
                   }`}
                 >
                   <img
-                    src={author.portrait}
+                    src={normalizeMediaUrl(author.portrait)}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      void handleMediaImageError(
+                        e.currentTarget,
+                        author.portrait,
+                        '/cultural_images/novgorod_kremlin.jpg'
+                      );
+                    }}
                     alt={author.name}
                     className="h-14 w-14 rounded-lg object-cover border border-slate-700 shrink-0 mt-0.5"
                   />
@@ -423,7 +466,19 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
                 <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                   {editingAuthor.portrait && (
                     <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-amber-500/40 shrink-0 shadow">
-                      <img src={editingAuthor.portrait} alt="Preview" className="w-full h-full object-cover" />
+                      <img
+                        src={normalizeMediaUrl(editingAuthor.portrait)}
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          void handleMediaImageError(
+                            e.currentTarget,
+                            editingAuthor.portrait,
+                            '/cultural_images/novgorod_kremlin.jpg'
+                          );
+                        }}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   )}
                   <div className="flex-1 w-full space-y-2">
@@ -437,14 +492,15 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
                     <div className="flex items-center gap-2">
                       <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold cursor-pointer transition-colors">
                         <Upload className="h-3.5 w-3.5" />
-                        <span>Upload Photo from Device</span>
+                        <span>{isUploadingPortrait ? 'Uploading...' : 'Upload Photo from Device'}</span>
                         <input
                           type="file"
                           accept="image/*"
+                          disabled={isUploadingPortrait}
                           className="hidden"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
-                            if (file) handlePortraitUpload(file);
+                            if (file) void handlePortraitUpload(file);
                           }}
                         />
                       </label>
@@ -464,9 +520,10 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({ currentLang, isA
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-2.5 font-bold text-slate-950 shadow-lg hover:from-amber-400 hover:to-amber-500 cursor-pointer"
+                  disabled={isUploadingPortrait}
+                  className="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-2.5 font-bold text-slate-950 shadow-lg hover:from-amber-400 hover:to-amber-500 cursor-pointer disabled:opacity-50"
                 >
-                  Save Author Changes
+                  {isUploadingPortrait ? 'Uploading Photo...' : 'Save Author Changes'}
                 </button>
               </div>
             </form>

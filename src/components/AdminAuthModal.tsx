@@ -17,9 +17,13 @@ import {
   Trash2,
   ExternalLink,
   AlertTriangle,
+  Copy,
+  Check,
+  Film,
 } from 'lucide-react';
 import {
   initGoogleDriveAuth,
+  preloadGoogleDriveClient,
   signInWithGoogleDrive,
   signOutGoogleDrive,
   getDriveAccessToken,
@@ -29,6 +33,7 @@ import {
   findDriveBackupFile,
   saveBackupToGoogleDrive,
   restoreBackupFromGoogleDrive,
+  syncWithGoogleDriveBackup,
   getLinkedDriveMeta,
   setDriveAutoSync,
   PORTAL_BACKUP_KEYS,
@@ -36,7 +41,12 @@ import {
   DriveLinkMeta,
   DriveUserInfo,
 } from '../utils/googleDrive';
-import { loadPersistentItem, savePersistentItem } from '../utils/persistentStore';
+import {
+  loadPersistentItem,
+  savePersistentItem,
+  notifyPortalDataSynced,
+} from '../utils/persistentStore';
+import { handleMediaImageError, normalizeMediaUrl } from '../utils/imageUpload';
 
 interface AdminAuthModalProps {
   isOpen: boolean;
@@ -45,6 +55,14 @@ interface AdminAuthModalProps {
   adminEmail?: string;
   onLogin: (email: string, pass: string) => boolean;
   onLogout: () => void;
+}
+
+function formatStorageBytes(bytes?: number): string {
+  if (!bytes || !Number.isFinite(bytes)) return '0 MB';
+  if (bytes >= 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
@@ -69,6 +87,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
   const [driveError, setDriveError] = useState<string>('');
   const [driveFiles, setDriveFiles] = useState<DriveMediaFile[]>([]);
   const [showDriveFiles, setShowDriveFiles] = useState(false);
+  const [copiedFileId, setCopiedFileId] = useState<string | null>(null);
 
   // Explicit user confirmation states for mutating/destructive Drive operations
   const [pendingConfirm, setPendingConfirm] = useState<
@@ -79,6 +98,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
   >(null);
 
   useEffect(() => {
+    preloadGoogleDriveClient();
     const unsub = initGoogleDriveAuth(
       (user) => {
         setDriveUser(user);
@@ -92,6 +112,14 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
     );
     return () => unsub();
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      preloadGoogleDriveClient();
+      setLinkedMeta(getLinkedDriveMeta());
+      setNeedsDriveAuth(!getDriveAccessToken());
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -116,23 +144,30 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
     }
   };
 
-  const handleGoogleDriveSignIn = async () => {
+  // Trigger GIS synchronously on click without async preamble so popup is never blocked
+  const handleGoogleDriveSignIn = () => {
     setDriveError('');
     setDriveStatus('');
     setIsDriveLoading(true);
-    try {
-      const result = await signInWithGoogleDrive();
-      setDriveUser(result.user);
-      setLinkedMeta(getLinkedDriveMeta());
-      setNeedsDriveAuth(false);
-      setDriveStatus('Google Drive is linked and auto-sync is active. New uploads will save directly to your Drive.');
-    } catch (err) {
-      setDriveError(
-        err instanceof Error ? err.message : 'Google Drive sign-in was cancelled or failed.'
-      );
-    } finally {
-      setIsDriveLoading(false);
-    }
+    signInWithGoogleDrive()
+      .then((result) => {
+        setDriveUser(result.user);
+        setLinkedMeta(getLinkedDriveMeta());
+        setNeedsDriveAuth(false);
+        setDriveStatus(
+          result.restoredCount > 0
+            ? `Google Drive connected & synced! Merged ${result.restoredCount} section(s) from your Drive backup.`
+            : 'Google Drive is connected and auto-sync is active. New uploads will save directly to your Drive.'
+        );
+      })
+      .catch((err: unknown) => {
+        setDriveError(
+          err instanceof Error ? err.message : 'Google Drive sign-in was cancelled or failed.'
+        );
+      })
+      .finally(() => {
+        setIsDriveLoading(false);
+      });
   };
 
   const handleGoogleDriveDisconnect = async () => {
@@ -151,6 +186,25 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
     const next = !linkedMeta.autoSync;
     setDriveAutoSync(next);
     setLinkedMeta({ ...linkedMeta, autoSync: next });
+  };
+
+  const handleSmartSyncNow = async () => {
+    setDriveError('');
+    setDriveStatus('');
+    setIsDriveLoading(true);
+    try {
+      const synced = await syncWithGoogleDriveBackup();
+      setLinkedMeta(getLinkedDriveMeta());
+      setDriveStatus(
+        synced > 0
+          ? `Sync complete! Updated ${synced} section(s) from Google Drive.`
+          : 'All portal items are up to date with Google Drive.'
+      );
+    } catch (err) {
+      setDriveError(err instanceof Error ? err.message : 'Sync with Google Drive failed.');
+    } finally {
+      setIsDriveLoading(false);
+    }
   };
 
   const handleLoadDriveFiles = async () => {
@@ -224,12 +278,13 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
       } else {
         const entries = Object.entries(backup.data as Record<string, unknown>);
         for (const [key, val] of entries) {
-          await savePersistentItem(key, val);
+          await savePersistentItem(key, val, { skipDirty: true, skipDriveSync: true });
         }
-        setDriveStatus('Backup restored from Google Drive! Reloading site to apply changes...');
-        setTimeout(() => {
-          window.location.reload();
-        }, 1200);
+        notifyPortalDataSynced();
+        setLinkedMeta(getLinkedDriveMeta());
+        setDriveStatus(
+          `Restored ${entries.length} section(s) from Google Drive! All views updated live.`
+        );
       }
     } catch (err) {
       setDriveError(err instanceof Error ? err.message : 'Restore from Google Drive failed.');
@@ -253,6 +308,18 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
       setPendingConfirm(null);
     }
   };
+
+  const handleCopyFileUrl = async (file: DriveMediaFile) => {
+    try {
+      await navigator.clipboard.writeText(file.url);
+      setCopiedFileId(file.id);
+      setTimeout(() => setCopiedFileId(null), 1800);
+    } catch {
+      // ignore
+    }
+  };
+
+  const quota = linkedMeta?.storageQuota;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-fade-in">
@@ -312,31 +379,43 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                 </div>
 
                 {linkedMeta && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-[11px]">
-                    <div className="text-slate-300">
-                      Linked Account: <span className="font-semibold text-blue-300">{linkedMeta.email}</span>
-                      {linkedMeta.lastSyncedAt && (
-                        <span className="text-slate-500 ml-2">
-                          · Last synced {new Date(linkedMeta.lastSyncedAt).toLocaleTimeString()}
-                        </span>
-                      )}
+                  <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-[11px]">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-slate-300">
+                        Linked Account: <span className="font-semibold text-blue-300">{linkedMeta.email}</span>
+                        {linkedMeta.lastSyncedAt && (
+                          <span className="text-slate-500 ml-2">
+                            · Last synced {new Date(linkedMeta.lastSyncedAt).toLocaleTimeString()}
+                          </span>
+                        )}
+                      </div>
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={linkedMeta.autoSync}
+                          onChange={handleToggleAutoSync}
+                          className="accent-amber-500 cursor-pointer"
+                        />
+                        <span>Auto-Sync Edits</span>
+                      </label>
                     </div>
-                    <label className="inline-flex items-center gap-1.5 cursor-pointer text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={linkedMeta.autoSync}
-                        onChange={handleToggleAutoSync}
-                        className="accent-amber-500 cursor-pointer"
-                      />
-                      <span>Auto-Sync Edits</span>
-                    </label>
+                    {quota && (quota.usageBytes !== undefined || quota.limitBytes !== undefined) && (
+                      <div className="text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
+                        <span>Drive Storage Used: {formatStorageBytes(quota.usageBytes)}</span>
+                        <span>
+                          {quota.limitBytes
+                            ? `Quota: ${formatStorageBytes(quota.limitBytes)}`
+                            : 'Unlimited Workspace Storage'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <p className="text-[11px] text-slate-400 leading-relaxed">
                   Connect your Google Drive so uploaded photos and videos are stored directly in your{' '}
                   <span className="text-slate-200 font-medium">Soul of Russia &amp; India Media</span>{' '}
-                  Drive folder with full quality and unlimited capacity.
+                  Drive folder with full quality and automatic cloud sync.
                 </p>
 
                 {driveError && (
@@ -360,7 +439,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                         {pendingConfirm.type === 'overwrite_backup' &&
                           "Overwrite existing 'sri_portal_backup.json' in your Google Drive with your current portal edits?"}
                         {pendingConfirm.type === 'restore_backup' &&
-                          'Restore portal edits from Google Drive? This will replace your current local edits.'}
+                          'Restore portal edits from Google Drive? This will apply your saved Google Drive backup across all sections.'}
                         {pendingConfirm.type === 'delete_file' &&
                           `Delete "${pendingConfirm.file.name}" from Google Drive? This action cannot be undone.`}
                       </span>
@@ -408,7 +487,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                       type="button"
                       disabled={isDriveLoading}
                       onClick={handleGoogleDriveSignIn}
-                      className="inline-flex items-center gap-3 rounded-full border border-[#747775] bg-white px-4 py-2 text-sm font-medium text-[#1f1f1f] shadow-sm hover:bg-[#f7f8f8] active:bg-[#eeeeee] transition-colors cursor-pointer disabled:opacity-60"
+                      className="inline-flex items-center gap-3 rounded-full border border-[#747775] bg-white px-4 py-2 text-sm font-medium text-[#1f1f1f] shadow-sm hover:bg-[#f7f8f8] active:bg-[#eeeeee] transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap shrink-0"
                     >
                       <svg
                         version="1.1"
@@ -445,7 +524,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                       <button
                         type="button"
                         onClick={handleGoogleDriveDisconnect}
-                        className="rounded-xl border border-slate-700 bg-slate-900 hover:border-red-400 px-3 py-2 text-[11px] font-semibold text-slate-400 hover:text-red-300 transition-colors cursor-pointer"
+                        className="rounded-xl border border-slate-700 bg-slate-900 hover:border-red-400 px-3 py-2 text-[11px] font-semibold text-slate-400 hover:text-red-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
                       >
                         Unlink Drive
                       </button>
@@ -460,6 +539,16 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                     )}
 
                     <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={isDriveLoading}
+                        onClick={handleSmartSyncNow}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-[11px] font-bold text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${isDriveLoading ? 'animate-spin' : ''}`} />
+                        <span>Sync Now</span>
+                      </button>
+
                       <button
                         type="button"
                         disabled={isDriveLoading}
@@ -486,7 +575,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                         onClick={handleLoadDriveFiles}
                         className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:border-amber-400 px-3 py-2 text-[11px] font-bold text-slate-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50"
                       >
-                        <RefreshCw className={`h-3.5 w-3.5 ${isDriveLoading ? 'animate-spin' : ''}`} />
+                        <HardDrive className="h-3.5 w-3.5" />
                         <span>Manage Drive Files</span>
                       </button>
 
@@ -500,7 +589,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                     </div>
 
                     {showDriveFiles && (
-                      <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3 space-y-2 max-h-44 overflow-y-auto">
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3 space-y-2 max-h-56 overflow-y-auto">
                         <div className="text-[11px] font-bold text-slate-300">
                           Uploaded Media in Drive ({driveFiles.length})
                         </div>
@@ -509,35 +598,78 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                             No media uploaded to Drive yet. Any photo or video you upload in Edit modals will appear here.
                           </div>
                         ) : (
-                          driveFiles.map((file) => (
-                            <div
-                              key={file.id}
-                              className="flex items-center justify-between gap-2 rounded-lg border border-slate-800/80 bg-slate-900/60 px-2.5 py-1.5 text-[11px]"
-                            >
-                              <span className="truncate text-slate-200" title={file.name}>
-                                {file.name}
-                              </span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <a
-                                  href={file.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-400 hover:text-blue-300 p-1"
-                                  title="Open file"
-                                >
-                                  <ExternalLink className="h-3.5 w-3.5" />
-                                </a>
-                                <button
-                                  type="button"
-                                  onClick={() => setPendingConfirm({ type: 'delete_file', file })}
-                                  className="text-red-400 hover:text-red-300 p-1 cursor-pointer"
-                                  title="Delete from Google Drive"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
+                          driveFiles.map((file) => {
+                            const isVideo = (file.mimeType || '').startsWith('video/');
+                            return (
+                              <div
+                                key={file.id}
+                                className="flex items-center justify-between gap-2.5 rounded-lg border border-slate-800/80 bg-slate-900/60 p-2 text-[11px]"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="h-9 w-12 rounded-md overflow-hidden border border-slate-700 bg-slate-950 shrink-0 flex items-center justify-center">
+                                    {isVideo ? (
+                                      <Film className="h-4 w-4 text-amber-400" />
+                                    ) : (
+                                      <img
+                                        src={normalizeMediaUrl(file.url)}
+                                        alt={file.name}
+                                        referrerPolicy="no-referrer"
+                                        onError={(e) => {
+                                          void handleMediaImageError(
+                                            e.currentTarget,
+                                            file.url,
+                                            '/cultural_images/novgorod_kremlin.jpg'
+                                          );
+                                        }}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="truncate text-slate-200 font-medium" title={file.name}>
+                                      {file.name}
+                                    </div>
+                                    {file.size && (
+                                      <div className="text-[10px] text-slate-500">
+                                        {formatStorageBytes(Number(file.size))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleCopyFileUrl(file)}
+                                    className="text-slate-300 hover:text-amber-300 p-1 cursor-pointer"
+                                    title="Copy URL"
+                                  >
+                                    {copiedFileId === file.id ? (
+                                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                                    ) : (
+                                      <Copy className="h-3.5 w-3.5" />
+                                    )}
+                                  </button>
+                                  <a
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:text-blue-300 p-1"
+                                    title="Open file"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPendingConfirm({ type: 'delete_file', file })}
+                                    className="text-red-400 hover:text-red-300 p-1 cursor-pointer"
+                                    title="Delete from Google Drive"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          ))
+                            );
+                          })
                         )}
                       </div>
                     )}

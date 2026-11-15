@@ -33,8 +33,14 @@ import {
   readFileAsDataUrl,
   normalizeMediaUrl,
   getDriveVideoEmbedUrl,
+  handleMediaImageError,
 } from '../utils/imageUpload';
-import { savePersistentItem, loadPersistentItem } from '../utils/persistentStore';
+import {
+  savePersistentItem,
+  loadPersistentItem,
+  readSyncCache,
+  PORTAL_DATA_SYNCED_EVENT,
+} from '../utils/persistentStore';
 
 interface VictoryViewProps {
   currentLang: Language;
@@ -44,26 +50,19 @@ interface VictoryViewProps {
 export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin = false }) => {
   const t = translations[currentLang];
 
-  // Dynamic stories state with localStorage persistence
+  // Dynamic stories state with synchronous IndexedDB/localStorage cache hydration
   const [stories, setStories] = useState<HeroicStory[]>(() => {
-    const saved = localStorage.getItem('sri_custom_heroic_stories');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const defaultMap = new Map(heroicStoriesData.map((d) => [d.id, d]));
-          // Merge curated default images if the saved item has no image or an old legacy placeholder
-          return parsed.map((item: HeroicStory) => {
-            const def = defaultMap.get(item.id);
-            if (def && (!item.image || item.image.includes('photo-1544716278-ca5e3f4abd8c') || item.image.includes('photo-1518709268805-4e9042af9f23') || item.image.includes('photo-1509198397868-475647b2a1e5'))) {
-              return { ...item, image: def.image };
-            }
-            return item;
-          });
+    const parsed = readSyncCache<HeroicStory[]>('sri_custom_heroic_stories');
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const defaultMap = new Map(heroicStoriesData.map((d) => [d.id, d]));
+      // Merge curated default images if the saved item has no image or an old legacy placeholder
+      return parsed.map((item: HeroicStory) => {
+        const def = defaultMap.get(item.id);
+        if (def && (!item.image || item.image.includes('photo-1544716278-ca5e3f4abd8c') || item.image.includes('photo-1518709268805-4e9042af9f23') || item.image.includes('photo-1509198397868-475647b2a1e5'))) {
+          return { ...item, image: def.image };
         }
-      } catch (e) {
-        console.warn('Failed to parse saved heroic stories', e);
-      }
+        return item;
+      });
     }
     return heroicStoriesData;
   });
@@ -92,31 +91,32 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
     }
   };
 
-  // Victory Quotes state with localStorage persistence
+  // Victory Quotes state with synchronous cache hydration
   const [victoryQuotes, setVictoryQuotes] = useState<VictoryQuote[]>(() => {
-    const saved = localStorage.getItem('sri_victory_quotes');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {
-        console.warn('Failed to parse saved victory quotes', e);
-      }
-    }
+    const parsed = readSyncCache<VictoryQuote[]>('sri_victory_quotes');
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     return victoryQuotesData;
   });
 
   useEffect(() => {
-    loadPersistentItem<HeroicStory[]>('sri_custom_heroic_stories').then((saved) => {
-      if (Array.isArray(saved) && saved.length > 0) {
-        setStories(saved);
-      }
-    });
-    loadPersistentItem<VictoryQuote[]>('sri_victory_quotes').then((saved) => {
-      if (Array.isArray(saved) && saved.length > 0) {
-        setVictoryQuotes(saved);
-      }
-    });
+    const hydrateVictory = () => {
+      loadPersistentItem<HeroicStory[]>('sri_custom_heroic_stories').then((saved) => {
+        if (Array.isArray(saved) && saved.length > 0) {
+          setStories(saved);
+        }
+      });
+      loadPersistentItem<VictoryQuote[]>('sri_victory_quotes').then((saved) => {
+        if (Array.isArray(saved) && saved.length > 0) {
+          setVictoryQuotes(saved);
+        }
+      });
+    };
+
+    hydrateVictory();
+    window.addEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateVictory);
+    return () => {
+      window.removeEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateVictory);
+    };
   }, []);
 
   const [activeQuoteIndex, setActiveQuoteIndex] = useState<number>(0);
@@ -166,6 +166,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
   };
 
   const handleQuoteMediaUpload = async (file: File) => {
+    setIsUploadingMedia(true);
     try {
       const dataUrl = await readFileAsDataUrl(file);
       if (editingQuote) {
@@ -177,6 +178,8 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
       }
     } catch (err) {
       console.error('Failed to read media file', err);
+    } finally {
+      setIsUploadingMedia(false);
     }
   };
 
@@ -314,8 +317,10 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
     setNewBadge('');
   };
 
-  // Editing story state
+  // Editing story state & upload/delete UI states
   const [editingStory, setEditingStory] = useState<HeroicStory | null>(null);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [confirmDeleteStoryId, setConfirmDeleteStoryId] = useState<string | null>(null);
 
   const handleStartEditStory = (story: HeroicStory, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -344,6 +349,7 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
   };
 
   const handleStoryImageUpload = async (file: File, isEditing: boolean) => {
+    setIsUploadingMedia(true);
     try {
       const dataUrl = await readFileAsDataUrl(file);
       if (isEditing) {
@@ -353,30 +359,33 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
       }
     } catch (err) {
       console.error('Failed to read image file', err);
+    } finally {
+      setIsUploadingMedia(false);
     }
   };
 
   const handleStoryVideoUpload = async (file: File) => {
+    setIsUploadingMedia(true);
     try {
       const dataUrl = await readFileAsDataUrl(file);
       setEditingStory((prev) => (prev ? { ...prev, videoUrl: dataUrl } : null));
     } catch (err) {
       console.error('Failed to read video file', err);
+    } finally {
+      setIsUploadingMedia(false);
     }
   };
 
-  const handleDeleteStory = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm('Are you sure you want to remove this heroic chronicle?')) {
-      setStories((prev) => {
-        const updated = prev.filter((s) => s.id !== id);
-        void savePersistentItem('sri_custom_heroic_stories', updated);
-        return updated;
-      });
-      if (selectedStory?.id === id) {
-        setSelectedStory(null);
-      }
+  const handleDeleteStory = (id: string) => {
+    setStories((prev) => {
+      const updated = prev.filter((s) => s.id !== id);
+      void savePersistentItem('sri_custom_heroic_stories', updated);
+      return updated;
+    });
+    if (selectedStory?.id === id) {
+      setSelectedStory(null);
     }
+    setConfirmDeleteStoryId(null);
   };
 
   const epochLabels: { id: string; labelEn: string; labelRu: string; labelHi: string }[] = [
@@ -651,11 +660,16 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
               <div className="flex items-center gap-3.5 border-b border-slate-800 pb-4">
                 <div className="relative h-14 w-14 sm:h-16 sm:w-16 rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-lg shrink-0 bg-slate-950">
                   <img
-                    src={activeQuote.portraitUrl}
+                    src={normalizeMediaUrl(activeQuote.portraitUrl)}
+                    referrerPolicy="no-referrer"
                     alt={activeQuote.figureName}
                     className="h-full w-full object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=400&q=80';
+                      void handleMediaImageError(
+                        e.currentTarget,
+                        activeQuote.portraitUrl,
+                        'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=400&q=80'
+                      );
                     }}
                   />
                 </div>
@@ -858,12 +872,17 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
               {/* Hero & War Topic Photo Container */}
               <div className="relative h-48 sm:h-52 w-full overflow-hidden rounded-2xl bg-slate-900 border border-slate-100 shadow-inner -mt-1 mb-3">
                 <img
-                  src={story.image || 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80'}
+                  src={normalizeMediaUrl(story.image) || 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80'}
+                  referrerPolicy="no-referrer"
                   alt={currentLang === 'ru' ? story.heroNameRu : story.heroName}
                   className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                   loading="lazy"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80';
+                    void handleMediaImageError(
+                      e.currentTarget,
+                      story.image,
+                      'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80'
+                    );
                   }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
@@ -952,13 +971,30 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
                       <Edit3 className="h-3.5 w-3.5 text-amber-600" />
                       <span>Edit</span>
                     </button>
-                    <button
-                      onClick={(e) => handleDeleteStory(story.id, e)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                      title="Delete chronicle (Admin)"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {confirmDeleteStoryId === story.id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleDeleteStory(story.id)}
+                          className="rounded-lg bg-red-600 px-2 py-1 text-[10px] font-bold text-white cursor-pointer"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteStoryId(null)}
+                          className="rounded-lg bg-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-700 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteStoryId(story.id)}
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        title="Delete chronicle (Admin)"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -991,11 +1027,16 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
               {/* Hero Memorial Photo Banner */}
               <div className="relative h-64 sm:h-72 w-full overflow-hidden rounded-2xl border border-red-500/40 bg-slate-950 shadow-2xl">
                 <img
-                  src={selectedStory.image || 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80'}
+                  src={normalizeMediaUrl(selectedStory.image) || 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80'}
+                  referrerPolicy="no-referrer"
                   alt={currentLang === 'ru' ? selectedStory.heroNameRu : selectedStory.heroName}
                   className="h-full w-full object-cover"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80';
+                    void handleMediaImageError(
+                      e.currentTarget,
+                      selectedStory.image,
+                      'https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=1200&q=80'
+                    );
                   }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0d1424] via-black/30 to-transparent" />
@@ -1638,9 +1679,10 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-gradient-to-r from-amber-500 to-red-600 px-6 py-2.5 font-bold text-white shadow-lg hover:from-amber-400 hover:to-red-500 cursor-pointer"
+                  disabled={isUploadingMedia}
+                  className="rounded-xl bg-gradient-to-r from-amber-500 to-red-600 px-6 py-2.5 font-bold text-white shadow-lg hover:from-amber-400 hover:to-red-500 cursor-pointer disabled:opacity-50"
                 >
-                  Save Chronicle Changes
+                  {isUploadingMedia ? 'Uploading Media...' : 'Save Chronicle Changes'}
                 </button>
               </div>
             </form>
@@ -1903,9 +1945,10 @@ export const VictoryView: React.FC<VictoryViewProps> = ({ currentLang, isAdmin =
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-gradient-to-r from-amber-500 to-red-600 px-6 py-2.5 font-bold text-white shadow-lg hover:from-amber-400 hover:to-red-500 cursor-pointer"
+                  disabled={isUploadingMedia}
+                  className="rounded-xl bg-gradient-to-r from-amber-500 to-red-600 px-6 py-2.5 font-bold text-white shadow-lg hover:from-amber-400 hover:to-red-500 cursor-pointer disabled:opacity-50"
                 >
-                  Save Quote & Video
+                  {isUploadingMedia ? 'Uploading Media...' : 'Save Quote & Video'}
                 </button>
               </div>
             </form>

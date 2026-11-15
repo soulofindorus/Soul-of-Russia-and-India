@@ -26,7 +26,13 @@ import { AdminAuthModal } from './components/AdminAuthModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AmbientCulturalBackground } from './components/AmbientCulturalBackground';
 import { fetchOpportunitiesFromSupabase, insertOpportunityToSupabase } from './lib/supabase';
-import { savePersistentItem, loadPersistentItem } from './utils/persistentStore';
+import {
+  savePersistentItem,
+  loadPersistentItem,
+  readSyncCache,
+  PORTAL_DATA_SYNCED_EVENT,
+} from './utils/persistentStore';
+import { preloadGoogleDriveClient } from './utils/googleDrive';
 
 function mergeRegionsWithDefaults(parsed: Region[], defaultRegions: Region[]): Region[] {
   const savedMap = new Map<string, Region>();
@@ -87,71 +93,62 @@ export default function App() {
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   const [activeVideo, setActiveVideo] = useState<(VideoItem | SoulStoryEpisode) | null>(null);
 
-  // Dynamic datasets (with IndexedDB + localStorage persistence for admin additions/deletions/edits)
+  // Dynamic datasets (with IndexedDB + memory snapshot + localStorage persistence)
   const [allRegions, setAllRegions] = useState<Region[]>(() => {
     const defaultRegions = [...initialRussianRegions, ...initialIndianRegions];
-    const saved = localStorage.getItem('sri_custom_regions');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return mergeRegionsWithDefaults(parsed, defaultRegions);
-        }
-      } catch (e) {}
+    const saved = readSyncCache<Region[]>('sri_custom_regions');
+    if (Array.isArray(saved) && saved.length > 0) {
+      return mergeRegionsWithDefaults(saved, defaultRegions);
     }
     return defaultRegions;
   });
 
   const [soulStories, setSoulStories] = useState<SoulStoryEpisode[]>(() => {
-    const saved = localStorage.getItem('sri_custom_soul_stories');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return soulStoriesData;
+    const saved = readSyncCache<SoulStoryEpisode[]>('sri_custom_soul_stories');
+    return Array.isArray(saved) && saved.length > 0 ? saved : soulStoriesData;
   });
 
   const [opportunities, setOpportunities] = useState<Opportunity[]>(() => {
-    const saved = localStorage.getItem('sri_custom_opportunities');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return initialOpportunities;
+    const saved = readSyncCache<Opportunity[]>('sri_custom_opportunities');
+    return Array.isArray(saved) && saved.length > 0 ? saved : initialOpportunities;
   });
 
   const [heritageVideos, setHeritageVideos] = useState<VideoItem[]>(() => {
-    const saved = localStorage.getItem('sri_custom_videos');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return heritageVideosData;
+    const saved = readSyncCache<VideoItem[]>('sri_custom_videos');
+    return Array.isArray(saved) && saved.length > 0 ? saved : heritageVideosData;
   });
 
-  // Hydrate large datasets from IndexedDB on mount (survives reloads even when localStorage 5MB quota is exceeded)
+  // Hydrate large datasets from IndexedDB on mount and whenever Drive sync restores data
   useEffect(() => {
+    preloadGoogleDriveClient();
+
     const defaultRegions = [...initialRussianRegions, ...initialIndianRegions];
-    loadPersistentItem<Region[]>('sri_custom_regions').then((saved) => {
-      if (Array.isArray(saved) && saved.length > 0) {
-        setAllRegions(mergeRegionsWithDefaults(saved, defaultRegions));
-      }
-    });
-    loadPersistentItem<SoulStoryEpisode[]>('sri_custom_soul_stories').then((saved) => {
-      if (Array.isArray(saved) && saved.length > 0) setSoulStories(saved);
-    });
-    loadPersistentItem<VideoItem[]>('sri_custom_videos').then((saved) => {
-      if (Array.isArray(saved) && saved.length > 0) setHeritageVideos(saved);
-    });
-    loadPersistentItem<Opportunity[]>('sri_custom_opportunities').then((saved) => {
-      if (Array.isArray(saved) && saved.length > 0) setOpportunities(saved);
-    });
+    const hydrateFromPersistentStore = () => {
+      loadPersistentItem<Region[]>('sri_custom_regions').then((saved) => {
+        if (Array.isArray(saved) && saved.length > 0) {
+          const merged = mergeRegionsWithDefaults(saved, defaultRegions);
+          setAllRegions(merged);
+          setSelectedRegion((curr) =>
+            curr ? merged.find((r) => r.id === curr.id) || curr : null
+          );
+        }
+      });
+      loadPersistentItem<SoulStoryEpisode[]>('sri_custom_soul_stories').then((saved) => {
+        if (Array.isArray(saved) && saved.length > 0) setSoulStories(saved);
+      });
+      loadPersistentItem<VideoItem[]>('sri_custom_videos').then((saved) => {
+        if (Array.isArray(saved) && saved.length > 0) setHeritageVideos(saved);
+      });
+      loadPersistentItem<Opportunity[]>('sri_custom_opportunities').then((saved) => {
+        if (Array.isArray(saved) && saved.length > 0) setOpportunities(saved);
+      });
+    };
+
+    hydrateFromPersistentStore();
+    window.addEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateFromPersistentStore);
+    return () => {
+      window.removeEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateFromPersistentStore);
+    };
   }, []);
 
   // Sync opportunities with Supabase backend

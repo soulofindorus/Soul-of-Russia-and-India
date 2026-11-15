@@ -29,8 +29,17 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
-import { readFileAsDataUrl, normalizeMediaUrl } from '../utils/imageUpload';
-import { savePersistentItem, loadPersistentItem } from '../utils/persistentStore';
+import {
+  readFileAsDataUrl,
+  normalizeMediaUrl,
+  handleMediaImageError,
+} from '../utils/imageUpload';
+import {
+  savePersistentItem,
+  loadPersistentItem,
+  readSyncCache,
+  PORTAL_DATA_SYNCED_EVENT,
+} from '../utils/persistentStore';
 
 interface ArchaeologyViewProps {
   currentLang: Language;
@@ -38,30 +47,33 @@ interface ArchaeologyViewProps {
 }
 
 export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, isAdmin = false }) => {
-  // Dynamic sites state with localStorage persistence
+  // Dynamic sites state with synchronous cache hydration
   const [sites, setSites] = useState<ArchaeologicalSite[]>(() => {
-    const saved = localStorage.getItem('sri_custom_archaeology_sites');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {
-        console.warn('Failed to parse saved archaeology sites', e);
-      }
-    }
+    const parsed = readSyncCache<ArchaeologicalSite[]>('sri_custom_archaeology_sites');
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     return archaeologicalSitesData;
   });
 
   useEffect(() => {
-    loadPersistentItem<ArchaeologicalSite[]>('sri_custom_archaeology_sites').then((saved) => {
-      if (Array.isArray(saved) && saved.length > 0) setSites(saved);
-    });
+    const hydrateSites = () => {
+      loadPersistentItem<ArchaeologicalSite[]>('sri_custom_archaeology_sites').then((saved) => {
+        if (Array.isArray(saved) && saved.length > 0) setSites(saved);
+      });
+    };
+
+    hydrateSites();
+    window.addEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateSites);
+    return () => {
+      window.removeEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateSites);
+    };
   }, []);
 
   const [selectedSite, setSelectedSite] = useState<ArchaeologicalSite | null>(null);
   const [dossierSite, setDossierSite] = useState<ArchaeologicalSite | null>(null);
   const [editingSite, setEditingSite] = useState<ArchaeologicalSite | null>(null);
   const [isAddSiteModalOpen, setIsAddSiteModalOpen] = useState(false);
+  const [isUploadingSiteImage, setIsUploadingSiteImage] = useState(false);
+  const [confirmDeleteSiteId, setConfirmDeleteSiteId] = useState<string | null>(null);
 
   // Add Site Form state
   const [newSiteName, setNewSiteName] = useState('');
@@ -123,6 +135,7 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
 
   // Editing and uploading handlers
   const handleSiteImageUpload = async (file: File, isEditing: boolean) => {
+    setIsUploadingSiteImage(true);
     try {
       const dataUrl = await readFileAsDataUrl(file);
       if (isEditing) {
@@ -132,6 +145,8 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
       }
     } catch (err) {
       console.error('Failed to read image file', err);
+    } finally {
+      setIsUploadingSiteImage(false);
     }
   };
 
@@ -160,17 +175,15 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
     setEditingSite(null);
   };
 
-  const handleDeleteSite = (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (confirm('Are you sure you want to delete this archaeological site?')) {
-      setSites((prev) => {
-        const updated = prev.filter((s) => s.id !== id);
-        void savePersistentItem('sri_custom_archaeology_sites', updated);
-        return updated;
-      });
-      if (selectedSite?.id === id) setSelectedSite(null);
-      if (dossierSite?.id === id) setDossierSite(null);
-    }
+  const handleDeleteSite = (id: string) => {
+    setSites((prev) => {
+      const updated = prev.filter((s) => s.id !== id);
+      void savePersistentItem('sri_custom_archaeology_sites', updated);
+      return updated;
+    });
+    if (selectedSite?.id === id) setSelectedSite(null);
+    if (dossierSite?.id === id) setDossierSite(null);
+    setConfirmDeleteSiteId(null);
   };
 
   const handleCreateSite = (e: React.FormEvent) => {
@@ -857,7 +870,15 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
                     className="relative h-60 w-full cursor-pointer overflow-hidden bg-slate-950 group/photo"
                   >
                     <img
-                      src={site.imageUrl}
+                      src={normalizeMediaUrl(site.imageUrl)}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        void handleMediaImageError(
+                          e.currentTarget,
+                          site.imageUrl,
+                          'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80'
+                        );
+                      }}
                       alt={localizedName}
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                       loading="lazy"
@@ -984,13 +1005,33 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
                         <Edit3 className="h-3.5 w-3.5" />
                         <span>Edit Site</span>
                       </button>
-                      <button
-                        onClick={(e) => handleDeleteSite(site.id, e)}
-                        className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
-                        title="Delete site (Admin)"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {confirmDeleteSiteId === site.id ? (
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleDeleteSite(site.id)}
+                            className="rounded-lg bg-red-600 px-2 py-1 text-[10px] font-bold text-white cursor-pointer"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteSiteId(null)}
+                            className="rounded-lg bg-slate-800 px-2 py-1 text-[10px] font-semibold text-slate-300 cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmDeleteSiteId(site.id);
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+                          title="Delete site (Admin)"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1044,7 +1085,15 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
             {/* Hero Image */}
             <div className="mt-5 relative h-64 sm:h-80 w-full rounded-xl overflow-hidden border border-slate-800">
               <img
-                src={dossierSite.imageUrl}
+                src={normalizeMediaUrl(dossierSite.imageUrl)}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  void handleMediaImageError(
+                    e.currentTarget,
+                    dossierSite.imageUrl,
+                    'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80'
+                  );
+                }}
                 alt={getLocalizedName(dossierSite)}
                 className="h-full w-full object-cover"
               />
@@ -1322,21 +1371,27 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
                   />
                   <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 cursor-pointer text-xs font-semibold">
                     <Upload className="h-3.5 w-3.5 text-amber-400" />
-                    <span>Upload</span>
+                    <span>{isUploadingSiteImage ? 'Uploading...' : 'Upload'}</span>
                     <input
                       type="file"
                       accept="image/*"
+                      disabled={isUploadingSiteImage}
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) handleSiteImageUpload(file, false);
+                        if (file) void handleSiteImageUpload(file, false);
                       }}
                     />
                   </label>
                 </div>
                 {newSiteImage && (
                   <div className="mt-2 relative w-24 h-16 rounded-xl overflow-hidden border border-slate-700">
-                    <img src={newSiteImage} alt="Preview" className="w-full h-full object-cover" />
+                    <img
+                      src={normalizeMediaUrl(newSiteImage)}
+                      referrerPolicy="no-referrer"
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 )}
               </div>
@@ -1351,9 +1406,10 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2 font-bold text-slate-950 shadow-md hover:from-amber-400 hover:to-amber-500 cursor-pointer"
+                  disabled={isUploadingSiteImage}
+                  className="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2 font-bold text-slate-950 shadow-md hover:from-amber-400 hover:to-amber-500 cursor-pointer disabled:opacity-50"
                 >
-                  Publish Archaeological Site
+                  {isUploadingSiteImage ? 'Uploading Photo...' : 'Publish Archaeological Site'}
                 </button>
               </div>
             </form>
@@ -1506,14 +1562,15 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
                     <div className="flex items-center gap-2">
                       <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold cursor-pointer transition-colors">
                         <Upload className="h-3.5 w-3.5" />
-                        <span>Upload Photo from Device</span>
+                        <span>{isUploadingSiteImage ? 'Uploading...' : 'Upload Photo from Device'}</span>
                         <input
                           type="file"
                           accept="image/*"
+                          disabled={isUploadingSiteImage}
                           className="hidden"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
-                            if (file) handleSiteImageUpload(file, true);
+                            if (file) void handleSiteImageUpload(file, true);
                           }}
                         />
                       </label>
@@ -1533,9 +1590,10 @@ export const ArchaeologyView: React.FC<ArchaeologyViewProps> = ({ currentLang, i
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-2.5 font-bold text-slate-950 shadow-lg hover:from-amber-400 hover:to-amber-500 cursor-pointer"
+                  disabled={isUploadingSiteImage}
+                  className="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-2.5 font-bold text-slate-950 shadow-lg hover:from-amber-400 hover:to-amber-500 cursor-pointer disabled:opacity-50"
                 >
-                  Save Archaeological Site
+                  {isUploadingSiteImage ? 'Uploading Photo...' : 'Save Archaeological Site'}
                 </button>
               </div>
             </form>
