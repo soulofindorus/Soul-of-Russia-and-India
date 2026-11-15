@@ -1,12 +1,12 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
-  getAuth,
   signInWithPopup,
+  signInWithCredential,
   GoogleAuthProvider,
   onAuthStateChanged,
   User,
 } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { auth } from '../lib/firebase';
 import {
   loadPersistentItem,
   savePersistentItem,
@@ -14,10 +14,8 @@ import {
   notifyPortalDataSynced,
 } from './persistentStore';
 
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
 export const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+const GIS_SCOPES = ['https://www.googleapis.com/auth/drive.file', 'openid', 'email', 'profile'];
 
 const provider = new GoogleAuthProvider();
 SCOPES.forEach((scope) => provider.addScope(scope));
@@ -112,7 +110,7 @@ function ensureGisTokenClient(): GisTokenClient | null {
 
   gisTokenClient = oauth2.initTokenClient({
     client_id: clientId,
-    scope: SCOPES.join(' '),
+    scope: GIS_SCOPES.join(' '),
     callback: (resp: GisTokenResponse) => {
       if (resp.error || !resp.access_token) {
         const msg = resp.error_description || resp.error || 'Google Drive authorization was cancelled.';
@@ -336,6 +334,13 @@ export const signInWithGoogleDrive = async (): Promise<ConnectDriveResult> => {
             }
             accessToken = resp.access_token;
             expiresIn = resp.expires_in || 3500;
+            try {
+              const cred = GoogleAuthProvider.credential(null, accessToken);
+              const fbRes = await signInWithCredential(auth, cred);
+              userInfo = { email: fbRes.user.email, displayName: fbRes.user.displayName };
+            } catch {
+              // Non-fatal if Firebase ID token exchange unavailable
+            }
           } catch (gisErr: unknown) {
             const gisMsg = gisErr instanceof Error ? gisErr.message : String(gisErr);
             if (gisMsg.toLowerCase().includes('popup_failed_to_open') || gisMsg.toLowerCase().includes('pop-up')) {
@@ -367,6 +372,13 @@ export const signInWithGoogleDrive = async (): Promise<ConnectDriveResult> => {
         }
         accessToken = resp.access_token;
         expiresIn = resp.expires_in || 3500;
+        try {
+          const cred = GoogleAuthProvider.credential(null, accessToken);
+          const fbRes = await signInWithCredential(auth, cred);
+          userInfo = { email: fbRes.user.email, displayName: fbRes.user.displayName };
+        } catch {
+          // Non-fatal
+        }
       } catch (gisErr: unknown) {
         const gisMsg = gisErr instanceof Error ? gisErr.message : String(gisErr);
         throw new Error(
@@ -399,6 +411,11 @@ export const signInWithGoogleDrive = async (): Promise<ConnectDriveResult> => {
 
     // Automatically restore/merge any saved items from Google Drive so nothing is ever lost!
     const restoredCount = await syncWithGoogleDriveBackup().catch(() => 0);
+
+    // Publish all restored/local edits to Public Cloud Firestore so everyone sees updates in any browser
+    import('./publicCloudSync')
+      .then(({ publishAllLocalEditsToPublicCloud }) => publishAllLocalEditsToPublicCloud())
+      .catch(() => {});
 
     return {
       user: userInfo,
@@ -492,22 +509,25 @@ async function getOrCreateAppFolder(accessToken: string): Promise<string> {
 }
 
 async function makeFilePublicReader(accessToken: string, fileId: string): Promise<boolean> {
-  try {
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        role: 'reader',
-        type: 'anyone',
-      }),
-    });
-    return res.ok;
-  } catch {
-    return false;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role: 'reader',
+          type: 'anyone',
+        }),
+      });
+      if (res.ok) return true;
+    } catch {
+      // retry once
+    }
   }
+  return false;
 }
 
 export interface DriveMediaFile {
@@ -823,13 +843,21 @@ export async function syncWithGoogleDriveBackup(): Promise<number> {
     if (driveVal !== undefined && driveVal !== null) {
       if (localVal === null || localVal === undefined || !dirtySet.has(key)) {
         // Local has no edits for this key: restore authoritative Drive version
-        await savePersistentItem(key, driveVal, { skipDirty: true, skipDriveSync: true });
+        await savePersistentItem(key, driveVal, {
+          skipDirty: true,
+          skipDriveSync: true,
+          skipPublicPublish: true,
+        });
         restoredKeys += 1;
       } else if (Array.isArray(localVal) && Array.isArray(driveVal)) {
         // Both modified: merge unique items by id
         const combined = mergeArrayById(localVal, driveVal);
         mergedPayload[key] = combined;
-        await savePersistentItem(key, combined, { skipDirty: true, skipDriveSync: true });
+        await savePersistentItem(key, combined, {
+          skipDirty: true,
+          skipDriveSync: true,
+          skipPublicPublish: true,
+        });
         restoredKeys += 1;
       } else {
         mergedPayload[key] = localVal;

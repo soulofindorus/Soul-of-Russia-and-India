@@ -1,0 +1,159 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: default deny everything not explicitly matched
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 160 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'ritikbalwan23@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidBoundedIdList(arr, maxLen) {
+      return arr is list && arr.size() <= maxLen && (arr.size() == 0 || (arr[0] is string && arr[0].size() <= 160));
+    }
+
+    function isValidSectionMeta(data, sectionKey) {
+      return data.keys().hasAll(['sectionKey', 'deletedIds', 'orderIds', 'isPublic', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['sectionKey', 'deletedIds', 'orderIds', 'isPublic', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'])
+        && data.sectionKey is string
+        && data.sectionKey == sectionKey
+        && data.sectionKey.size() >= 3 && data.sectionKey.size() <= 100
+        && isValidBoundedIdList(data.deletedIds, 500)
+        && isValidBoundedIdList(data.orderIds, 500)
+        && data.isPublic is bool && data.isPublic == true
+        && data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128
+        && data.updatedBy is string && data.updatedBy == request.auth.uid && data.updatedBy.size() <= 128
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPortalEntry(data, entryId) {
+      return data.keys().hasAll(['entryId', 'sectionKey', 'itemId', 'payload', 'isPublic', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['entryId', 'sectionKey', 'itemId', 'payload', 'isPublic', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'])
+        && data.entryId is string
+        && data.entryId == entryId
+        && data.entryId.size() >= 3 && data.entryId.size() <= 160
+        && data.sectionKey is string && data.sectionKey.size() >= 3 && data.sectionKey.size() <= 100 && data.sectionKey.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.itemId is string && data.itemId.size() >= 1 && data.itemId.size() <= 128 && data.itemId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.payload is map && data.payload.keys().size() >= 1 && data.payload.keys().size() <= 64
+        && data.isPublic is bool && data.isPublic == true
+        && data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128
+        && data.updatedBy is string && data.updatedBy == request.auth.uid && data.updatedBy.size() <= 128
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPortalMedia(data, mediaId) {
+      return data.keys().hasAll(['mediaId', 'dataUrl', 'mimeType', 'isPublic', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['mediaId', 'dataUrl', 'mimeType', 'driveFileId', 'isPublic', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'])
+        && data.mediaId is string
+        && data.mediaId == mediaId
+        && data.mediaId.size() >= 3 && data.mediaId.size() <= 160
+        && data.dataUrl is string && data.dataUrl.size() >= 32 && data.dataUrl.size() <= 900000
+        && data.mimeType is string && data.mimeType.size() >= 5 && data.mimeType.size() <= 64
+        && (!('driveFileId' in data) || (data.driveFileId is string && data.driveFileId.size() <= 160))
+        && data.isPublic is bool && data.isPublic == true
+        && data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128
+        && data.updatedBy is string && data.updatedBy == request.auth.uid && data.updatedBy.size() <= 128
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Connection health check doc (read-only ping)
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // Trusted admins lookup (read only by self)
+    match /admins/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+      allow list, create, update, delete: if false;
+    }
+
+    // Public portal sections metadata (deletions & ordering)
+    match /portal_sections/{sectionKey} {
+      allow get: if isValidId(sectionKey) && (resource == null || resource.data.isPublic == true);
+      allow list: if resource.data.isPublic == true;
+      allow create: if isAdmin()
+        && isValidId(sectionKey)
+        && isValidSectionMeta(incoming(), sectionKey)
+        && incoming().createdBy == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(sectionKey)
+        && isValidSectionMeta(incoming(), sectionKey)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['deletedIds', 'orderIds', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(sectionKey);
+    }
+
+    // Public portal content entries (regions, stories, articles, videos, archaeology, quotes, achievements)
+    match /portal_entries/{entryId} {
+      allow get: if isValidId(entryId) && (resource == null || resource.data.isPublic == true);
+      allow list: if resource.data.isPublic == true;
+      allow create: if isAdmin()
+        && isValidId(entryId)
+        && isValidPortalEntry(incoming(), entryId)
+        && incoming().createdBy == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(entryId)
+        && isValidPortalEntry(incoming(), entryId)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['payload', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(entryId);
+    }
+
+    // Public web-ready media assets (for Drive fallback & non-Drive uploads)
+    match /portal_media/{mediaId} {
+      allow get: if isValidId(mediaId) && (resource == null || resource.data.isPublic == true);
+      allow list: if resource.data.isPublic == true;
+      allow create: if isAdmin()
+        && isValidId(mediaId)
+        && isValidPortalMedia(incoming(), mediaId)
+        && incoming().createdBy == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(mediaId)
+        && isValidPortalMedia(incoming(), mediaId)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['dataUrl', 'mimeType', 'driveFileId', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(mediaId);
+    }
+  }
+}

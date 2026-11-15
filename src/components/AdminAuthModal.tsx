@@ -20,6 +20,7 @@ import {
   Copy,
   Check,
   Film,
+  Globe,
 } from 'lucide-react';
 import {
   initGoogleDriveAuth,
@@ -48,6 +49,13 @@ import {
   notifyPortalDataSynced,
 } from '../utils/persistentStore';
 import { handleMediaImageError, resolveCachedMediaUrl } from '../utils/imageUpload';
+import {
+  canPublishToPublicCloud,
+  getPublicSyncStatus,
+  publishAllLocalEditsToPublicCloud,
+  PUBLIC_CLOUD_STATUS_EVENT,
+  PublicSyncStatus,
+} from '../utils/publicCloudSync';
 
 interface AdminAuthModalProps {
   isOpen: boolean;
@@ -90,6 +98,8 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
   const [showDriveFiles, setShowDriveFiles] = useState(false);
   const [copiedFileId, setCopiedFileId] = useState<string | null>(null);
   const [copiedOriginField, setCopiedOriginField] = useState<string | null>(null);
+  const [publicStatus, setPublicStatus] = useState<PublicSyncStatus>(() => getPublicSyncStatus());
+  const [canPublishPublic, setCanPublishPublic] = useState<boolean>(() => canPublishToPublicCloud());
 
   // Explicit user confirmation states for mutating/destructive Drive operations
   const [pendingConfirm, setPendingConfirm] = useState<
@@ -106,13 +116,25 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
         setDriveUser(user);
         setLinkedMeta(getLinkedDriveMeta());
         setNeedsDriveAuth(false);
+        setCanPublishPublic(canPublishToPublicCloud());
+        setPublicStatus(getPublicSyncStatus());
       },
       () => {
         setLinkedMeta(getLinkedDriveMeta());
         setNeedsDriveAuth(!getDriveAccessToken());
+        setCanPublishPublic(canPublishToPublicCloud());
+        setPublicStatus(getPublicSyncStatus());
       }
     );
-    return () => unsub();
+    const onPublicStatus = () => {
+      setCanPublishPublic(canPublishToPublicCloud());
+      setPublicStatus(getPublicSyncStatus());
+    };
+    window.addEventListener(PUBLIC_CLOUD_STATUS_EVENT, onPublicStatus);
+    return () => {
+      unsub();
+      window.removeEventListener(PUBLIC_CLOUD_STATUS_EVENT, onPublicStatus);
+    };
   }, []);
 
   useEffect(() => {
@@ -120,6 +142,8 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
       preloadGoogleDriveClient();
       setLinkedMeta(getLinkedDriveMeta());
       setNeedsDriveAuth(!getDriveAccessToken());
+      setCanPublishPublic(canPublishToPublicCloud());
+      setPublicStatus(getPublicSyncStatus());
     }
   }, [isOpen]);
 
@@ -196,14 +220,38 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
     setIsDriveLoading(true);
     try {
       const synced = await syncWithGoogleDriveBackup();
+      const published = await publishAllLocalEditsToPublicCloud().catch(() => 0);
       setLinkedMeta(getLinkedDriveMeta());
+      setCanPublishPublic(canPublishToPublicCloud());
+      setPublicStatus(getPublicSyncStatus());
       setDriveStatus(
-        synced > 0
+        published > 0
+          ? `Sync & Publish complete! Updated ${synced} section(s) from Drive and published ${published} section(s) live for all visitors.`
+          : synced > 0
           ? `Sync complete! Updated ${synced} section(s) from Google Drive.`
-          : 'All portal items are up to date with Google Drive.'
+          : 'All portal items are up to date with Google Drive & Public Cloud.'
       );
     } catch (err) {
       setDriveError(err instanceof Error ? err.message : 'Sync with Google Drive failed.');
+    } finally {
+      setIsDriveLoading(false);
+    }
+  };
+
+  const handlePublishAllToPublic = async () => {
+    setDriveError('');
+    setDriveStatus('');
+    setIsDriveLoading(true);
+    try {
+      const count = await publishAllLocalEditsToPublicCloud();
+      setPublicStatus(getPublicSyncStatus());
+      setDriveStatus(
+        `Published ${count} section(s) to the Public Cloud! Everyone opening or searching the site in any browser will now see all uploaded photos and edits.`
+      );
+    } catch (err) {
+      setDriveError(
+        err instanceof Error ? err.message : 'Could not publish updates to Public Cloud.'
+      );
     } finally {
       setIsDriveLoading(false);
     }
@@ -362,6 +410,73 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                 <p className="text-[11px] text-slate-300 leading-relaxed">
                   You have full editing access across Heritage, Victory, Archaeology, Articles, Literature, and Achievements.
                 </p>
+              </div>
+
+              {/* Public Website Live Cloud Visibility Status */}
+              <div
+                className={`rounded-2xl border p-4 space-y-2.5 ${
+                  canPublishPublic
+                    ? 'border-emerald-500/35 bg-emerald-950/20'
+                    : 'border-amber-500/35 bg-amber-950/25'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Globe
+                      className={`h-4 w-4 ${
+                        canPublishPublic ? 'text-emerald-400' : 'text-amber-400'
+                      }`}
+                    />
+                    <span className="text-xs font-bold text-white">
+                      Public Website Sync (All Browsers)
+                    </span>
+                  </div>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      canPublishPublic
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    }`}
+                  >
+                    {publicStatus.isPublishing
+                      ? 'Publishing...'
+                      : canPublishPublic
+                      ? 'Live for Everyone'
+                      : 'Sign in with Google to Publish'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  {canPublishPublic
+                    ? 'Every photo or edit you upload is automatically published to the public cloud database so anyone searching in any browser sees your latest photos.'
+                    : `Sign in with Google below so your uploaded photos and edits publish to the public cloud for all visitors${
+                        publicStatus.pendingKeysCount > 0
+                          ? ` (${publicStatus.pendingKeysCount} section(s) waiting to publish)`
+                          : ''
+                      }.`}
+                </p>
+                {canPublishPublic && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <span className="text-[10px] text-slate-400">
+                      {publicStatus.lastPublishedAt
+                        ? `Last published ${new Date(publicStatus.lastPublishedAt).toLocaleTimeString()}`
+                        : 'Click below to sync any earlier uploads to everyone'}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={isDriveLoading || publicStatus.isPublishing}
+                      onClick={handlePublishAllToPublic}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-white transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      <Globe className="h-3.5 w-3.5" />
+                      <span>Publish All Updates Live</span>
+                    </button>
+                  </div>
+                )}
+                {publicStatus.lastError && (
+                  <div className="text-[10px] text-red-300">
+                    Publish notice: {publicStatus.lastError}
+                  </div>
+                )}
               </div>
 
               {/* Google Drive Unlimited Cloud Storage Card */}

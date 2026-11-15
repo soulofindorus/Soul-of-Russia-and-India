@@ -22,6 +22,7 @@ import {
   resolveCachedMediaUrl,
   handleMediaImageError,
 } from '../utils/imageUpload';
+import { canPublishToPublicCloud } from '../utils/publicCloudSync';
 
 interface RegionModalProps {
   region: Region | null;
@@ -761,21 +762,28 @@ export const RegionModal: React.FC<RegionModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="rounded-lg px-4 py-2 text-slate-400 hover:text-white cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUploading}
-                  className="rounded-lg bg-amber-500 hover:bg-amber-400 px-6 py-2 font-bold text-slate-950 shadow-lg cursor-pointer disabled:opacity-50"
-                >
-                  {isUploading ? 'Uploading Photo...' : 'Save Region Changes'}
-                </button>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-800">
+                <span className="text-[11px] text-slate-400">
+                  {canPublishToPublicCloud()
+                    ? '✓ Public Cloud connected: saved photo & edits go live for everyone in any browser.'
+                    : 'Saved locally until you connect Google in Admin Access to publish live for everyone.'}
+                </span>
+                <div className="flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="rounded-lg px-4 py-2 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUploading}
+                    className="rounded-lg bg-amber-500 hover:bg-amber-400 px-6 py-2 font-bold text-slate-950 shadow-lg cursor-pointer disabled:opacity-50"
+                  >
+                    {isUploading ? 'Uploading Photo...' : 'Save Region Changes'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

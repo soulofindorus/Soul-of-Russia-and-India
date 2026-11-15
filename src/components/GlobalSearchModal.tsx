@@ -1,11 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Search, X, MapPin, Film, BookOpen, GraduationCap, Sparkles, Feather, ArrowRight, Landmark } from 'lucide-react';
-import { Region, VideoItem, SoulStoryEpisode, Author, Opportunity, Language } from '../types';
+import {
+  Region,
+  VideoItem,
+  SoulStoryEpisode,
+  Author,
+  Opportunity,
+  Language,
+  ArchaeologicalSite,
+  HeroicStory,
+  ArticleItem,
+} from '../types';
 import { archaeologicalSitesData } from '../data/archaeologyData';
 import { heroicStoriesData } from '../data/victoryData';
 import { initialArticlesData } from '../data/articlesData';
 import { Flame, Newspaper } from 'lucide-react';
 import { resolveCachedMediaUrl, handleMediaImageError } from '../utils/imageUpload';
+import {
+  readSyncCache,
+  loadPersistentItem,
+  PORTAL_DATA_SYNCED_EVENT,
+} from '../utils/persistentStore';
 
 interface GlobalSearchModalProps {
   isOpen: boolean;
@@ -35,6 +50,45 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   onNavigate,
 }) => {
   const [query, setQuery] = useState('');
+  const [liveAuthors, setLiveAuthors] = useState<Author[]>(() => {
+    const saved = readSyncCache<Author[]>('sri_custom_authors');
+    return Array.isArray(saved) && saved.length > 0 ? saved : authors;
+  });
+  const [liveArchaeology, setLiveArchaeology] = useState<ArchaeologicalSite[]>(() => {
+    const saved = readSyncCache<ArchaeologicalSite[]>('sri_custom_archaeology_sites');
+    return Array.isArray(saved) && saved.length > 0 ? saved : archaeologicalSitesData;
+  });
+  const [liveVictory, setLiveVictory] = useState<HeroicStory[]>(() => {
+    const saved = readSyncCache<HeroicStory[]>('sri_custom_heroic_stories');
+    return Array.isArray(saved) && saved.length > 0 ? saved : heroicStoriesData;
+  });
+  const [liveArticles, setLiveArticles] = useState<ArticleItem[]>(() => {
+    const saved = readSyncCache<ArticleItem[]>('sri_custom_articles');
+    return Array.isArray(saved) && saved.length > 0 ? saved : initialArticlesData;
+  });
+
+  useEffect(() => {
+    const refreshLiveSearchData = () => {
+      loadPersistentItem<Author[]>('sri_custom_authors').then((s) => {
+        if (Array.isArray(s) && s.length > 0) setLiveAuthors(s);
+      });
+      loadPersistentItem<ArchaeologicalSite[]>('sri_custom_archaeology_sites').then((s) => {
+        if (Array.isArray(s) && s.length > 0) setLiveArchaeology(s);
+      });
+      loadPersistentItem<HeroicStory[]>('sri_custom_heroic_stories').then((s) => {
+        if (Array.isArray(s) && s.length > 0) setLiveVictory(s);
+      });
+      loadPersistentItem<ArticleItem[]>('sri_custom_articles').then((s) => {
+        if (Array.isArray(s) && s.length > 0) setLiveArticles(s);
+      });
+    };
+
+    if (isOpen) refreshLiveSearchData();
+    window.addEventListener(PORTAL_DATA_SYNCED_EVENT, refreshLiveSearchData);
+    return () => {
+      window.removeEventListener(PORTAL_DATA_SYNCED_EVENT, refreshLiveSearchData);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -76,7 +130,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     : [];
 
   const matchedAuthors = q
-    ? authors.filter(
+    ? liveAuthors.filter(
         (a) =>
           a.name.toLowerCase().includes(q) ||
           a.nameRu.toLowerCase().includes(q) ||
@@ -94,7 +148,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     : [];
 
   const matchedArchaeology = q
-    ? archaeologicalSitesData.filter(
+    ? liveArchaeology.filter(
         (s) =>
           s.name.toLowerCase().includes(q) ||
           s.nameRu.toLowerCase().includes(q) ||
@@ -105,7 +159,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     : [];
 
   const matchedVictory = q
-    ? heroicStoriesData.filter(
+    ? liveVictory.filter(
         (v) =>
           v.title.toLowerCase().includes(q) ||
           v.titleRu.toLowerCase().includes(q) ||
@@ -117,7 +171,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     : [];
 
   const matchedArticles = q
-    ? initialArticlesData.filter(
+    ? liveArticles.filter(
         (a) =>
           a.title.toLowerCase().includes(q) ||
           (a.titleRu && a.titleRu.toLowerCase().includes(q)) ||

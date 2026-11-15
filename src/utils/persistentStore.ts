@@ -144,6 +144,7 @@ export function notifyPortalDataSynced(): void {
 export interface SavePersistentOptions {
   skipDirty?: boolean;
   skipDriveSync?: boolean;
+  skipPublicPublish?: boolean;
 }
 
 export async function savePersistentItem<T>(
@@ -202,6 +203,17 @@ export async function savePersistentItem<T>(
       .then(({ PORTAL_BACKUP_KEYS, scheduleDriveAutoSync }) => {
         if (PORTAL_BACKUP_KEYS.includes(key)) {
           scheduleDriveAutoSync();
+        }
+      })
+      .catch(() => {});
+  }
+
+  // 4. Publish changes to public Cloud Firestore so all visitors see updates in any browser
+  if (!options.skipPublicPublish) {
+    import('./publicCloudSync')
+      .then(({ PORTAL_SECTION_KEYS, schedulePublicCloudPublish }) => {
+        if ((PORTAL_SECTION_KEYS as readonly string[]).includes(key)) {
+          schedulePublicCloudPublish(key);
         }
       })
       .catch(() => {});

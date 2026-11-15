@@ -33,6 +33,7 @@ import {
   PORTAL_DATA_SYNCED_EVENT,
 } from './utils/persistentStore';
 import { preloadGoogleDriveClient } from './utils/googleDrive';
+import { startPublicCloudSync } from './utils/publicCloudSync';
 
 function mergeRegionsWithDefaults(parsed: Region[], defaultRegions: Region[]): Region[] {
   const savedMap = new Map<string, Region>();
@@ -146,8 +147,10 @@ export default function App() {
 
     hydrateFromPersistentStore();
     window.addEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateFromPersistentStore);
+    const stopCloudSync = startPublicCloudSync();
     return () => {
       window.removeEventListener(PORTAL_DATA_SYNCED_EVENT, hydrateFromPersistentStore);
+      stopCloudSync();
     };
   }, []);
 

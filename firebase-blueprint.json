@@ -1,0 +1,210 @@
+{
+  "entities": {
+    "PortalSectionMeta": {
+      "title": "Portal Section Metadata",
+      "description": "Tracks deleted item IDs and ordering for a public portal content section.",
+      "type": "object",
+      "properties": {
+        "sectionKey": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 100,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "deletedIds": {
+          "type": "array",
+          "description": "Bounded list of removed item IDs"
+        },
+        "orderIds": {
+          "type": "array",
+          "description": "Bounded list of custom item IDs in display order"
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "updatedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "sectionKey",
+        "deletedIds",
+        "orderIds",
+        "isPublic",
+        "createdBy",
+        "updatedBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PortalEntry": {
+      "title": "Portal Content Entry",
+      "description": "Individual updated or added cultural region, story, article, video, site, or achievement published for all visitors.",
+      "type": "object",
+      "properties": {
+        "entryId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sectionKey": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 100,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "itemId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "payload": {
+          "type": "object",
+          "description": "Structured item fields (title, name, image, galleryImages, etc.)"
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "updatedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "entryId",
+        "sectionKey",
+        "itemId",
+        "payload",
+        "isPublic",
+        "createdBy",
+        "updatedBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PortalMedia": {
+      "title": "Portal Public Media Asset",
+      "description": "Web-optimized public image payload or Drive backup preview so every browser can render uploaded photos.",
+      "type": "object",
+      "properties": {
+        "mediaId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "dataUrl": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 900000
+        },
+        "mimeType": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 64
+        },
+        "driveFileId": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "updatedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "mediaId",
+        "dataUrl",
+        "mimeType",
+        "isPublic",
+        "createdBy",
+        "updatedBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminUser": {
+      "title": "Administrator Record",
+      "description": "Authorized administrator accounts for RBAC verification.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin"]
+        }
+      },
+      "required": ["uid", "role"]
+    }
+  },
+  "firestore": {
+    "/portal_sections/{sectionKey}": {
+      "schema": { "$ref": "#/entities/PortalSectionMeta" },
+      "description": "Public section metadata (deletions and ordering) readable by all visitors and writable only by verified admins."
+    },
+    "/portal_entries/{entryId}": {
+      "schema": { "$ref": "#/entities/PortalEntry" },
+      "description": "Individual edited or added portal items (regions, photos, stories, articles) readable by all visitors and writable only by verified admins."
+    },
+    "/portal_media/{mediaId}": {
+      "schema": { "$ref": "#/entities/PortalMedia" },
+      "description": "Public web-optimized image backups readable by all visitors and writable only by verified admins."
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Trusted administrator lookup documents."
+    }
+  }
+}

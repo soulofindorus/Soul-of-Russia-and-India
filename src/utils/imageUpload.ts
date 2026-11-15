@@ -77,9 +77,14 @@ function getMediaKey(canonicalUrl: string, driveId?: string | null): string {
 
 function getCacheStorageKey(canonicalUrl: string, driveId?: string | null): string {
   // Always use an HTTPS URL so Cache Storage .put/.match accepts it in all browsers
-  return driveId
-    ? `https://sri-media-cache.local/drive/${encodeURIComponent(driveId)}`
-    : canonicalUrl;
+  if (driveId) {
+    return `https://sri-media-cache.local/drive/${encodeURIComponent(driveId)}`;
+  }
+  if (canonicalUrl.startsWith('sri-media://')) {
+    const mediaId = canonicalUrl.slice('sri-media://'.length);
+    return `https://sri-media-cache.local/public-media/${encodeURIComponent(mediaId)}`;
+  }
+  return canonicalUrl;
 }
 
 /**
@@ -445,6 +450,17 @@ export async function validateAndWarmMediaFromPersistedData(
         return;
       }
 
+      // If sri-media:// ref, hydrate from public Firestore /portal_media
+      if (canonicalUrl.startsWith('sri-media://')) {
+        const mediaId = canonicalUrl.slice('sri-media://'.length);
+        const warmed = await warmPublicMediaById(mediaId);
+        if (warmed) {
+          resolvedMediaSrcMemory.set(rawUrl, warmed);
+          warmedCount += 1;
+        }
+        return;
+      }
+
       // Fallback: check IndexedDB `sri_drive_preview_{id}` and promote verified preview into Cache + memory
       if (driveId) {
         const previewKey = `sri_drive_preview_${driveId}`;
@@ -494,6 +510,55 @@ export async function validateAndWarmMediaFromPersistedData(
     invalidatedCount,
     warmedCount,
   };
+}
+
+/**
+ * Fetches & caches a public `/portal_media/{mediaId}` document from Firestore.
+ */
+export async function warmPublicMediaById(mediaId: string): Promise<string | null> {
+  if (!mediaId) return null;
+  const canonicalRef = `sri-media://${mediaId}`;
+  const mediaKey = getMediaKey(canonicalRef, null);
+  const existing =
+    resolvedMediaSrcMemory.get(canonicalRef) || resolvedMediaSrcMemory.get(mediaKey);
+  if (existing) return existing;
+
+  const inflight = inflightWarmups.get(`public:${mediaId}`);
+  if (inflight) return inflight;
+
+  const task = (async () => {
+    try {
+      const fromCache = await readAndVerifyCachedBlobUrl(canonicalRef, null);
+      if (fromCache) {
+        resolvedMediaSrcMemory.set(canonicalRef, fromCache);
+        return fromCache;
+      }
+
+      const { fetchPublicMediaDataUrl } = await import('./publicCloudSync');
+      const dataUrl = await fetchPublicMediaDataUrl(mediaId);
+      if (!dataUrl || !isValidImageDataUrl(dataUrl)) return null;
+
+      const converted = dataUrlToBlob(dataUrl);
+      if (converted) {
+        const blobUrl = await storeVerifiedBlobInCache(canonicalRef, null, converted.blob);
+        if (blobUrl) {
+          resolvedMediaSrcMemory.set(canonicalRef, blobUrl);
+          return blobUrl;
+        }
+      }
+
+      resolvedMediaSrcMemory.set(canonicalRef, dataUrl);
+      resolvedMediaSrcMemory.set(mediaKey, dataUrl);
+      return dataUrl;
+    } catch {
+      return null;
+    } finally {
+      inflightWarmups.delete(`public:${mediaId}`);
+    }
+  })();
+
+  inflightWarmups.set(`public:${mediaId}`, task);
+  return task;
 }
 
 /**
@@ -629,27 +694,58 @@ export async function readFileAsDataUrl(file: File): Promise<string> {
           // Cache the exact uploaded image blob immediately with integrity verification
           void storeVerifiedBlobInCache(canonicalUrl, uploaded.id, file);
 
-          // Also keep compact preview in IndexedDB as durable secondary backup
-          compressImage(file, 800, 800, 0.72)
-            .then((previewDataUrl) =>
-              savePersistentItem(`sri_drive_preview_${uploaded.id}`, previewDataUrl, {
+          // Also keep compact preview in IndexedDB AND publish public backup to Firestore `/portal_media/drive_{id}`
+          compressImage(file, 900, 900, 0.72)
+            .then(async (previewDataUrl) => {
+              await savePersistentItem(`sri_drive_preview_${uploaded.id}`, previewDataUrl, {
                 skipDirty: true,
                 skipDriveSync: true,
-              })
-            )
+                skipPublicPublish: true,
+              });
+              const { canPublishToPublicCloud, publishPublicMediaDoc } = await import(
+                './publicCloudSync'
+              );
+              if (canPublishToPublicCloud()) {
+                await publishPublicMediaDoc(
+                  `drive_${uploaded.id}`,
+                  previewDataUrl,
+                  'image/jpeg',
+                  uploaded.id
+                );
+              }
+            })
             .catch(() => {});
         }
         return uploaded.url;
       }
     } catch (err) {
-      console.warn('Google Drive upload failed, falling back to local compressed storage:', err);
+      console.warn('Google Drive upload failed, falling back to public compressed storage:', err);
     }
   }
 
-  // Local compressed storage fallback
+  // Local + Public Firestore compressed storage fallback
   if (file.type.startsWith('image/')) {
     try {
-      return await compressImage(file);
+      const compressed = await compressImage(file, 960, 960, 0.75);
+      const { canPublishToPublicCloud, publishPublicMediaDoc } = await import('./publicCloudSync');
+      if (canPublishToPublicCloud()) {
+        const mediaId = `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const publishedId = await publishPublicMediaDoc(mediaId, compressed, 'image/jpeg').catch(
+          () => null
+        );
+        if (publishedId) {
+          const mediaRef = `sri-media://${publishedId}`;
+          const converted = dataUrlToBlob(compressed);
+          if (converted) {
+            const blobUrl = await storeVerifiedBlobInCache(mediaRef, null, converted.blob);
+            if (blobUrl) resolvedMediaSrcMemory.set(mediaRef, blobUrl);
+          } else {
+            resolvedMediaSrcMemory.set(mediaRef, compressed);
+          }
+          return mediaRef;
+        }
+      }
+      return compressed;
     } catch {
       // Fallback to raw data URL if canvas fails
     }
@@ -690,7 +786,7 @@ export function normalizeMediaUrl(url?: string): string {
   const trimmed = url.trim();
   if (!trimmed) return '';
 
-  if (trimmed.startsWith('data:')) {
+  if (trimmed.startsWith('data:') || trimmed.startsWith('sri-media://')) {
     return trimmed;
   }
 
@@ -708,6 +804,15 @@ export function resolveCachedMediaUrl(url?: string): string {
   if (!trimmed) return '';
 
   if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('sri-media://')) {
+    const cached =
+      resolvedMediaSrcMemory.get(trimmed) ||
+      resolvedMediaSrcMemory.get(getMediaKey(trimmed, null));
+    if (cached) return cached;
+    void warmPublicMediaById(trimmed.slice('sri-media://'.length));
     return trimmed;
   }
 
@@ -746,6 +851,19 @@ export async function handleMediaImageError(
   fallbackUrl: string
 ): Promise<void> {
   const stage = Number(imgEl.dataset.fallbackStage || '0');
+
+  if (originalUrl?.trim().startsWith('sri-media://')) {
+    if (stage < 1) {
+      imgEl.dataset.fallbackStage = '1';
+      const mediaId = originalUrl.trim().slice('sri-media://'.length);
+      const resolved = await warmPublicMediaById(mediaId);
+      if (resolved) {
+        imgEl.src = resolved;
+        return;
+      }
+    }
+  }
+
   const driveId = extractGoogleDriveFileId(originalUrl || imgEl.src);
 
   if (driveId) {
@@ -791,6 +909,14 @@ export async function handleMediaImageError(
         }
         // Purge corrupted preview from IndexedDB
         await deletePersistentItem(previewKey);
+      }
+
+      // Check public Firestore `/portal_media/drive_{id}` for visitors on any browser
+      const publicDrivePreview = await warmPublicMediaById(`drive_${driveId}`);
+      if (publicDrivePreview) {
+        resolvedMediaSrcMemory.set(getMediaKey(canonicalUrl, driveId), publicDrivePreview);
+        imgEl.src = publicDrivePreview;
+        return;
       }
     }
 
