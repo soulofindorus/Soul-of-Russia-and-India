@@ -31,9 +31,9 @@ import {
 } from '../../data/school/curriculumData';
 import { DEFAULT_FEATURED_ACHIEVEMENT } from '../../data/achievementsData';
 import { SchoolThemeTokens } from './schoolTheme';
-import moscowCampusImg from '../../assets/images/school_hero_moscow_campus_1794837328584.jpg';
-import spbHallImg from '../../assets/images/school_spb_literature_hall_1794837328224.jpg';
-import lifeStudyImg from '../../assets/images/school_life_study_campus_1794837328817.jpg';
+import moscowCampusImg from '../../assets/images/novgorod_kremlin_1790951822350.jpg';
+import spbHallImg from '../../assets/images/smolensk_fortress_1790951841321.jpg';
+import lifeStudyImg from '../../assets/images/ru_hospitality_1790951910819.jpg';
 import sarikaImg from '../../assets/images/regenerated_image_1790026251186.jpg';
 
 interface SchoolHomeViewProps {
@@ -142,7 +142,7 @@ export const SchoolHomeView: React.FC<SchoolHomeViewProps> = ({
           <div className="lg:col-span-5 relative min-h-[260px] lg:min-h-full">
             <img
               src={moscowCampusImg}
-              alt="Moscow State University academic architecture representing Russian higher education"
+              alt="Historic Russian Kremlin architecture along the river representing classical Russian heritage"
               className="h-full w-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0c1b33] via-[#0c1b33]/35 to-transparent lg:bg-gradient-to-r lg:from-[#0c1b33] lg:via-[#0c1b33]/20 lg:to-transparent" />
@@ -242,7 +242,7 @@ export const SchoolHomeView: React.FC<SchoolHomeViewProps> = ({
             <div className="h-44 overflow-hidden">
               <img
                 src={spbHallImg}
-                alt="Saint Petersburg historic reading hall"
+                alt="Historic Russian cathedral and fortress architectural ensemble"
                 className="h-full w-full object-cover"
               />
             </div>
@@ -272,7 +272,7 @@ export const SchoolHomeView: React.FC<SchoolHomeViewProps> = ({
             <div className="h-40 overflow-hidden">
               <img
                 src={lifeStudyImg}
-                alt="International students collaborating at a Russian university campus"
+                alt="Traditional Russian hospitality welcome with karavai bread and samovar"
                 className="h-full w-full object-cover"
               />
             </div>
