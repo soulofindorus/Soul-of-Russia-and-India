@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { GrammarLesson, GrammarExercise, Language } from '../types';
 import { russianGrammarLessons, hindiLanguageGuides } from '../data/languageData';
 import { translations } from '../i18n/translations';
-import { BookOpen, CheckCircle, XCircle, Sparkles, HelpCircle, ArrowRight, RotateCcw, Award, Gamepad2 } from 'lucide-react';
+import { BookOpen, CheckCircle, XCircle, Sparkles, HelpCircle, ArrowRight, RotateCcw, Award, Gamepad2, GraduationCap, Mail, MapPin } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { VocabularyQuiz } from './VocabularyQuiz';
+import sarikaImg from '../assets/images/regenerated_image_1790026251186.jpg';
 
 interface LanguageViewProps {
   currentLang: Language;
@@ -70,19 +71,65 @@ export const LanguageView: React.FC<LanguageViewProps> = ({ currentLang }) => {
   };
 
   return (
-    <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 w-full flex flex-col items-center">
+    <section className="min-h-screen py-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-10 w-full flex flex-col items-center">
       {/* Header */}
-      <div className="text-center space-y-4 max-w-3xl mx-auto w-full">
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-white/90 px-4 py-1 text-xs font-bold tracking-wider text-amber-800 uppercase shadow-sm">
+      <div className="text-center space-y-4 max-w-4xl mx-auto w-full">
+        <div className="inline-flex items-center gap-2 rounded-lg border border-amber-500/40 bg-white/90 px-4 py-1 text-xs font-bold tracking-wider text-amber-800 uppercase shadow-sm">
           <BookOpen className="h-3.5 w-3.5 text-amber-600" />
-          <span>Interactive Cultural Linguistics</span>
+          <span>Interactive Cultural Linguistics • Русский и хинди</span>
         </div>
         <h1 className="font-cinzel text-2xl xs:text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-wide break-words">
           {t.language.title}
         </h1>
-        <p className="text-xs sm:text-base text-slate-600 leading-relaxed font-serif-culture">
+        <p className="text-xs sm:text-base text-slate-600 leading-relaxed font-serif-culture max-w-3xl mx-auto">
           {t.language.subtitle}
         </p>
+      </div>
+
+      {/* Teacher Spotlight Card: Sarika Kumari */}
+      <div className="w-full max-w-4xl rounded-2xl border border-amber-500/30 bg-gradient-to-r from-[#0c1424] via-[#101a2f] to-[#0c1424] p-5 sm:p-6 shadow-xl">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+          <div className="relative h-20 w-20 sm:h-24 sm:w-24 overflow-hidden rounded-2xl border-2 border-amber-400/80 shadow-lg shrink-0">
+            <img
+              src={sarikaImg}
+              alt={t.language.teacherName}
+              className="h-full w-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+          <div className="flex-1 text-center sm:text-left space-y-2 min-w-0">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/20 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-amber-300 border border-amber-500/30">
+                <GraduationCap className="h-3.5 w-3.5" />
+                {t.language.teacherBadge}
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
+                <MapPin className="h-3 w-3 text-amber-400/80" />
+                {t.language.teacherLocation}
+              </span>
+            </div>
+            <div>
+              <h2 className="font-cinzel text-xl sm:text-2xl font-bold text-white">
+                {t.language.teacherName}
+              </h2>
+              <p className="text-xs sm:text-sm font-semibold text-amber-300/90 font-serif-culture">
+                {t.language.teacherRole}
+              </p>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              {t.language.teacherBio}
+            </p>
+            <div className="pt-1 flex justify-center sm:justify-start">
+              <a
+                href={`mailto:${t.language.teacherContact}`}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 hover:underline"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                <span>{t.language.teacherContact}</span>
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Language Choice Switcher */}

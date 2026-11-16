@@ -143,6 +143,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         );
       }
     }
+    if (id === 'language') {
+      if (currentLang === 'en') return 'Russian School';
+      if (currentLang === 'hi') return 'रूसी विद्यालय';
+      return 'Школа языка';
+    }
     return defaultLabel;
   };
 
@@ -381,7 +386,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <Icon className="h-4 w-4" />
                       </div>
                       <span className="text-left font-medium leading-tight">
-                        {displayLabel}
+                        {item.id === 'language' ? item.label : displayLabel}
                       </span>
                     </div>
                     {isActive && (
