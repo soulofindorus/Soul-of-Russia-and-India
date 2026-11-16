@@ -27,10 +27,29 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email_verified == true;
     }
 
+    function isBootstrappedAdminEmail() {
+      return isVerifiedUser() && request.auth.token.email == 'ritikbalwan23@gmail.com';
+    }
+
+    function isBootstrappedFacultyEmail() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'ritikbalwan23@gmail.com' ||
+        request.auth.token.email == 'sarikakumari10500@gmail.com'
+      );
+    }
+
     function isAdmin() {
       return isVerifiedUser() && (
         request.auth.token.email == 'ritikbalwan23@gmail.com' ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isTeacherOrAdmin() {
+      return isVerifiedUser() && (
+        isAdmin() ||
+        request.auth.token.email == 'sarikakumari10500@gmail.com' ||
+        exists(/databases/$(database)/documents/school_teachers/$(request.auth.uid))
       );
     }
 
@@ -85,18 +104,158 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
-    // Connection health check doc (read-only ping)
+    // --- School Validation Helpers ---
+    function isValidLevelId(lvl) {
+      return lvl in ['pre-a1', 'a1', 'a2', 'b1', 'b2', 'c1', 'c2'];
+    }
+
+    function isValidSchoolTeacher(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'active', 'createdBy', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'email', 'active', 'createdBy', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == userId && data.uid.size() >= 1 && data.uid.size() <= 128
+        && data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 120
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 180
+        && data.active is bool
+        && data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSchoolUser(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'role', 'currentLevel', 'preferredUiLang', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'email', 'role', 'currentLevel', 'preferredUiLang', 'country', 'learningGoal', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == userId && data.uid.size() >= 1 && data.uid.size() <= 128
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 180
+        && data.role in ['student', 'teacher', 'admin']
+        && isValidLevelId(data.currentLevel)
+        && data.preferredUiLang in ['en', 'ru', 'hi']
+        && (!('country' in data) || (data.country is string && data.country.size() <= 80))
+        && (!('learningGoal' in data) || (data.learningGoal is string && data.learningGoal.size() <= 240))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSchoolContentDoc(data, docId, expectedType) {
+      return data.keys().hasAll(['docId', 'contentType', 'isPublished', 'payload', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['docId', 'contentType', 'levelId', 'isPublished', 'payload', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'])
+        && data.docId is string && data.docId == docId && data.docId.size() >= 2 && data.docId.size() <= 160
+        && data.contentType is string && data.contentType == expectedType
+        && (!('levelId' in data) || (data.levelId is string && data.levelId.size() <= 40))
+        && data.isPublished is bool
+        && data.payload is map && data.payload.keys().size() >= 1 && data.payload.keys().size() <= 64
+        && data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128
+        && data.updatedBy is string && data.updatedBy == request.auth.uid && data.updatedBy.size() <= 128
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSchoolProgress(data, userId) {
+      return data.keys().hasAll(['userId', 'currentLevel', 'enrolledCourseIds', 'completedLessonIds', 'savedVocabIds', 'streakDays', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'studentName', 'currentLevel', 'enrolledCourseIds', 'completedLessonIds', 'savedVocabIds', 'srsRecords', 'lastLessonId', 'streakDays', 'lastStudyDate', 'updatedAt'])
+        && data.userId is string && data.userId == userId && data.userId.size() >= 1 && data.userId.size() <= 128
+        && (!('studentName' in data) || (data.studentName is string && data.studentName.size() <= 120))
+        && isValidLevelId(data.currentLevel)
+        && isValidBoundedIdList(data.enrolledCourseIds, 100)
+        && isValidBoundedIdList(data.completedLessonIds, 500)
+        && isValidBoundedIdList(data.savedVocabIds, 500)
+        && (!('srsRecords' in data) || (data.srsRecords is map && data.srsRecords.keys().size() <= 500))
+        && (!('lastLessonId' in data) || (data.lastLessonId is string && data.lastLessonId.size() <= 160))
+        && data.streakDays is number && data.streakDays >= 0 && data.streakDays <= 10000
+        && (!('lastStudyDate' in data) || (data.lastStudyDate is string && data.lastStudyDate.size() <= 32))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidQuizAttempt(data, attemptId) {
+      return data.keys().hasAll(['attemptId', 'userId', 'quizId', 'quizTitle', 'score', 'totalQuestions', 'percentage', 'passed', 'createdAt'])
+        && data.keys().hasOnly(['attemptId', 'userId', 'quizId', 'quizTitle', 'levelId', 'score', 'totalQuestions', 'percentage', 'passed', 'recommendedLevel', 'createdAt'])
+        && data.attemptId is string && data.attemptId == attemptId && data.attemptId.size() >= 3 && data.attemptId.size() <= 160
+        && data.userId is string && data.userId == request.auth.uid && data.userId.size() <= 128
+        && data.quizId is string && data.quizId.size() >= 2 && data.quizId.size() <= 120
+        && data.quizTitle is string && data.quizTitle.size() >= 2 && data.quizTitle.size() <= 180
+        && (!('levelId' in data) || (data.levelId is string && data.levelId.size() <= 40))
+        && data.score is number && data.score >= 0 && data.score <= 500
+        && data.totalQuestions is number && data.totalQuestions >= 1 && data.totalQuestions <= 500
+        && data.percentage is number && data.percentage >= 0 && data.percentage <= 100
+        && data.passed is bool
+        && (!('recommendedLevel' in data) || (data.recommendedLevel is string && data.recommendedLevel.size() <= 40))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidSchoolBookmark(data, bookmarkId) {
+      return data.keys().hasAll(['bookmarkId', 'userId', 'itemId', 'itemType', 'title', 'createdAt'])
+        && data.keys().hasOnly(['bookmarkId', 'userId', 'itemId', 'itemType', 'title', 'levelId', 'createdAt'])
+        && data.bookmarkId is string && data.bookmarkId == bookmarkId && data.bookmarkId.size() >= 3 && data.bookmarkId.size() <= 160
+        && data.userId is string && data.userId == request.auth.uid && data.userId.size() <= 128
+        && data.itemId is string && data.itemId.size() >= 1 && data.itemId.size() <= 160
+        && data.itemType in ['lesson', 'reading']
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && (!('levelId' in data) || (data.levelId is string && data.levelId.size() <= 40))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidWritingSubmission(data, submissionId) {
+      return data.keys().hasAll(['submissionId', 'userId', 'studentName', 'lessonId', 'lessonTitle', 'prompt', 'responseText', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['submissionId', 'userId', 'studentName', 'lessonId', 'lessonTitle', 'levelId', 'prompt', 'responseText', 'status', 'teacherFeedback', 'reviewedBy', 'createdAt', 'updatedAt'])
+        && data.submissionId is string && data.submissionId == submissionId && data.submissionId.size() >= 3 && data.submissionId.size() <= 160
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128
+        && data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 120
+        && data.lessonId is string && data.lessonId.size() >= 2 && data.lessonId.size() <= 160
+        && data.lessonTitle is string && data.lessonTitle.size() >= 2 && data.lessonTitle.size() <= 200
+        && (!('levelId' in data) || (data.levelId is string && data.levelId.size() <= 40))
+        && data.prompt is string && data.prompt.size() >= 3 && data.prompt.size() <= 500
+        && data.responseText is string && data.responseText.size() >= 5 && data.responseText.size() <= 4000
+        && data.status in ['submitted', 'reviewed']
+        && (!('teacherFeedback' in data) || (data.teacherFeedback is string && data.teacherFeedback.size() <= 2000))
+        && (!('reviewedBy' in data) || (data.reviewedBy is string && data.reviewedBy.size() <= 128))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSchoolEnrolment(data, enrolmentId) {
+      return data.keys().hasAll(['enrolmentId', 'userId', 'studentName', 'email', 'country', 'currentProficiency', 'preferredCourse', 'learningGoals', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['enrolmentId', 'userId', 'studentName', 'email', 'country', 'currentProficiency', 'preferredCourse', 'learningGoals', 'message', 'status', 'createdAt', 'updatedAt'])
+        && data.enrolmentId is string && data.enrolmentId == enrolmentId && data.enrolmentId.size() >= 3 && data.enrolmentId.size() <= 160
+        && data.userId is string && data.userId == request.auth.uid && data.userId.size() <= 128
+        && data.studentName is string && data.studentName.size() >= 2 && data.studentName.size() <= 120
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 180
+        && data.country is string && data.country.size() >= 2 && data.country.size() <= 80
+        && data.currentProficiency is string && data.currentProficiency.size() >= 2 && data.currentProficiency.size() <= 60
+        && data.preferredCourse is string && data.preferredCourse.size() >= 2 && data.preferredCourse.size() <= 160
+        && data.learningGoals is string && data.learningGoals.size() >= 3 && data.learningGoals.size() <= 600
+        && (!('message' in data) || (data.message is string && data.message.size() <= 1500))
+        && data.status in ['pending', 'confirmed', 'archived']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSchoolCertificate(data, certId) {
+      return data.keys().hasAll(['certId', 'userId', 'studentName', 'levelId', 'levelTitle', 'certificateCode', 'issuedBy', 'enabled', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['certId', 'userId', 'studentName', 'levelId', 'levelTitle', 'certificateCode', 'issuedBy', 'enabled', 'createdAt', 'updatedAt'])
+        && data.certId is string && data.certId == certId && data.certId.size() >= 3 && data.certId.size() <= 160
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128
+        && data.studentName is string && data.studentName.size() >= 2 && data.studentName.size() <= 120
+        && data.levelId is string && data.levelId.size() >= 2 && data.levelId.size() <= 40
+        && data.levelTitle is string && data.levelTitle.size() >= 2 && data.levelTitle.size() <= 160
+        && data.certificateCode is string && data.certificateCode.size() >= 4 && data.certificateCode.size() <= 64
+        && data.issuedBy is string && data.issuedBy.size() >= 2 && data.issuedBy.size() <= 120
+        && data.enabled is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // =========================================================================
+    // EXISTING PORTAL RULES (PRESERVED)
+    // =========================================================================
     match /test/connection {
       allow get: if true;
     }
 
-    // Trusted admins lookup (read only by self)
     match /admins/{userId} {
       allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
       allow list, create, update, delete: if false;
     }
 
-    // Public portal sections metadata (deletions & ordering)
     match /portal_sections/{sectionKey} {
       allow get: if isValidId(sectionKey) && (resource == null || resource.data.isPublic == true);
       allow list: if resource.data.isPublic == true;
@@ -116,7 +275,6 @@ service cloud.firestore {
       allow delete: if isAdmin() && isValidId(sectionKey);
     }
 
-    // Public portal content entries (regions, stories, articles, videos, archaeology, quotes, achievements)
     match /portal_entries/{entryId} {
       allow get: if isValidId(entryId) && (resource == null || resource.data.isPublic == true);
       allow list: if resource.data.isPublic == true;
@@ -136,7 +294,6 @@ service cloud.firestore {
       allow delete: if isAdmin() && isValidId(entryId);
     }
 
-    // Public web-ready media assets (for Drive fallback & non-Drive uploads)
     match /portal_media/{mediaId} {
       allow get: if isValidId(mediaId) && (resource == null || resource.data.isPublic == true);
       allow list: if resource.data.isPublic == true;
@@ -154,6 +311,243 @@ service cloud.firestore {
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time;
       allow delete: if isAdmin() && isValidId(mediaId);
+    }
+
+    // =========================================================================
+    // SCHOOL OF FOREIGN LANGUAGES (RUSSIAN) RULES
+    // =========================================================================
+    match /school_teachers/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isBootstrappedAdminEmail();
+      allow create: if isAdmin() && isValidId(userId) && isValidSchoolTeacher(incoming(), userId)
+        && incoming().createdBy == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin() && isValidId(userId) && isValidSchoolTeacher(incoming(), userId)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'active', 'updatedAt'])
+        && incoming().uid == existing().uid
+        && incoming().createdBy == existing().createdBy
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    match /school_users/{userId} {
+      allow get: if isVerifiedUser() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isBootstrappedAdminEmail();
+      allow create: if isVerifiedUser() && isValidId(userId) && request.auth.uid == userId
+        && isValidSchoolUser(incoming(), userId)
+        && incoming().role == 'student'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() && isValidId(userId) && isValidSchoolUser(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            request.auth.uid == userId
+            && incoming().role == existing().role
+            && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'currentLevel', 'preferredUiLang', 'country', 'learningGoal', 'updatedAt'])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // Shared pattern for published educational CMS collections
+    match /school_courses/{docId} {
+      allow get: if isValidId(docId) && (resource == null || resource.data.isPublished == true || isTeacherOrAdmin());
+      allow list: if resource.data.isPublished == true || isBootstrappedFacultyEmail();
+      allow create: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'course')
+        && incoming().createdBy == request.auth.uid && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'course')
+        && incoming().diff(existing()).affectedKeys().hasOnly(['levelId', 'isPublished', 'payload', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isTeacherOrAdmin() && isValidId(docId);
+    }
+
+    match /school_levels/{docId} {
+      allow get: if isValidId(docId) && (resource == null || resource.data.isPublished == true || isTeacherOrAdmin());
+      allow list: if resource.data.isPublished == true || isBootstrappedFacultyEmail();
+      allow create: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'level')
+        && incoming().createdBy == request.auth.uid && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'level')
+        && incoming().diff(existing()).affectedKeys().hasOnly(['levelId', 'isPublished', 'payload', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isTeacherOrAdmin() && isValidId(docId);
+    }
+
+    match /school_modules/{docId} {
+      allow get: if isValidId(docId) && (resource == null || resource.data.isPublished == true || isTeacherOrAdmin());
+      allow list: if resource.data.isPublished == true || isBootstrappedFacultyEmail();
+      allow create: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'module')
+        && incoming().createdBy == request.auth.uid && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'module')
+        && incoming().diff(existing()).affectedKeys().hasOnly(['levelId', 'isPublished', 'payload', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isTeacherOrAdmin() && isValidId(docId);
+    }
+
+    match /school_lessons/{docId} {
+      allow get: if isValidId(docId) && (resource == null || resource.data.isPublished == true || isTeacherOrAdmin());
+      allow list: if resource.data.isPublished == true || isBootstrappedFacultyEmail();
+      allow create: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'lesson')
+        && incoming().createdBy == request.auth.uid && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'lesson')
+        && incoming().diff(existing()).affectedKeys().hasOnly(['levelId', 'isPublished', 'payload', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isTeacherOrAdmin() && isValidId(docId);
+    }
+
+    match /school_vocabulary/{docId} {
+      allow get: if isValidId(docId) && (resource == null || resource.data.isPublished == true || isTeacherOrAdmin());
+      allow list: if resource.data.isPublished == true || isBootstrappedFacultyEmail();
+      allow create: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'vocabulary')
+        && incoming().createdBy == request.auth.uid && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'vocabulary')
+        && incoming().diff(existing()).affectedKeys().hasOnly(['levelId', 'isPublished', 'payload', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isTeacherOrAdmin() && isValidId(docId);
+    }
+
+    match /school_reading_materials/{docId} {
+      allow get: if isValidId(docId) && (resource == null || resource.data.isPublished == true || isTeacherOrAdmin());
+      allow list: if resource.data.isPublished == true || isBootstrappedFacultyEmail();
+      allow create: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'reading')
+        && incoming().createdBy == request.auth.uid && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'reading')
+        && incoming().diff(existing()).affectedKeys().hasOnly(['levelId', 'isPublished', 'payload', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isTeacherOrAdmin() && isValidId(docId);
+    }
+
+    match /school_quizzes/{docId} {
+      allow get: if isValidId(docId) && (resource == null || resource.data.isPublished == true || isTeacherOrAdmin());
+      allow list: if resource.data.isPublished == true || isBootstrappedFacultyEmail();
+      allow create: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'quiz')
+        && incoming().createdBy == request.auth.uid && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'quiz')
+        && incoming().diff(existing()).affectedKeys().hasOnly(['levelId', 'isPublished', 'payload', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isTeacherOrAdmin() && isValidId(docId);
+    }
+
+    match /school_questions/{docId} {
+      allow get: if isValidId(docId) && (resource == null || resource.data.isPublished == true || isTeacherOrAdmin());
+      allow list: if resource.data.isPublished == true || isBootstrappedFacultyEmail();
+      allow create: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'question')
+        && incoming().createdBy == request.auth.uid && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'question')
+        && incoming().diff(existing()).affectedKeys().hasOnly(['levelId', 'isPublished', 'payload', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isTeacherOrAdmin() && isValidId(docId);
+    }
+
+    match /school_announcements/{docId} {
+      allow get: if isValidId(docId) && (resource == null || resource.data.isPublished == true || isTeacherOrAdmin());
+      allow list: if resource.data.isPublished == true || isBootstrappedFacultyEmail();
+      allow create: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'announcement')
+        && incoming().createdBy == request.auth.uid && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'announcement')
+        && incoming().diff(existing()).affectedKeys().hasOnly(['levelId', 'isPublished', 'payload', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isTeacherOrAdmin() && isValidId(docId);
+    }
+
+    match /school_video_references/{docId} {
+      allow get: if isValidId(docId) && (resource == null || resource.data.isPublished == true || isTeacherOrAdmin());
+      allow list: if resource.data.isPublished == true || isBootstrappedFacultyEmail();
+      allow create: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'video')
+        && incoming().createdBy == request.auth.uid && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(docId) && isValidSchoolContentDoc(incoming(), docId, 'video')
+        && incoming().diff(existing()).affectedKeys().hasOnly(['levelId', 'isPublished', 'payload', 'updatedBy', 'updatedAt'])
+        && incoming().createdBy == existing().createdBy && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isTeacherOrAdmin() && isValidId(docId);
+    }
+
+    // Student private progress & records
+    match /school_progress/{userId} {
+      allow get: if isVerifiedUser() && isValidId(userId) && (request.auth.uid == userId || isTeacherOrAdmin());
+      allow list: if isVerifiedUser() && (resource.data.userId == request.auth.uid || isBootstrappedFacultyEmail());
+      allow create: if isVerifiedUser() && isValidId(userId) && request.auth.uid == userId
+        && isValidSchoolProgress(incoming(), userId)
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() && isValidId(userId) && request.auth.uid == userId
+        && isValidSchoolProgress(incoming(), userId)
+        && incoming().userId == existing().userId
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    match /school_quiz_attempts/{attemptId} {
+      allow get: if isVerifiedUser() && isValidId(attemptId) && (resource == null || existing().userId == request.auth.uid || isTeacherOrAdmin());
+      allow list: if isVerifiedUser() && (resource.data.userId == request.auth.uid || isBootstrappedFacultyEmail());
+      allow create: if isVerifiedUser() && isValidId(attemptId)
+        && isValidQuizAttempt(incoming(), attemptId)
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /school_bookmarks/{bookmarkId} {
+      allow get: if isVerifiedUser() && isValidId(bookmarkId) && (resource == null || existing().userId == request.auth.uid);
+      allow list: if isVerifiedUser() && resource.data.userId == request.auth.uid;
+      allow create: if isVerifiedUser() && isValidId(bookmarkId)
+        && isValidSchoolBookmark(incoming(), bookmarkId)
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isVerifiedUser() && isValidId(bookmarkId) && existing().userId == request.auth.uid;
+    }
+
+    match /school_writing_submissions/{submissionId} {
+      allow get: if isVerifiedUser() && isValidId(submissionId) && (resource == null || existing().userId == request.auth.uid || isTeacherOrAdmin());
+      allow list: if isVerifiedUser() && (resource.data.userId == request.auth.uid || isBootstrappedFacultyEmail());
+      allow create: if isVerifiedUser() && isValidId(submissionId)
+        && isValidWritingSubmission(incoming(), submissionId)
+        && incoming().userId == request.auth.uid
+        && incoming().status == 'submitted'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(submissionId)
+        && isValidWritingSubmission(incoming(), submissionId)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'teacherFeedback', 'reviewedBy', 'updatedAt'])
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(submissionId);
+    }
+
+    match /school_enrolments/{enrolmentId} {
+      allow get: if isVerifiedUser() && isValidId(enrolmentId) && (resource == null || existing().userId == request.auth.uid || isTeacherOrAdmin());
+      allow list: if isVerifiedUser() && (resource.data.userId == request.auth.uid || isBootstrappedFacultyEmail());
+      allow create: if isVerifiedUser() && isValidId(enrolmentId)
+        && isValidSchoolEnrolment(incoming(), enrolmentId)
+        && incoming().status == 'pending'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(enrolmentId)
+        && isValidSchoolEnrolment(incoming(), enrolmentId)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(enrolmentId);
+    }
+
+    match /school_certificates/{certId} {
+      allow get: if isVerifiedUser() && isValidId(certId) && (resource == null || (existing().userId == request.auth.uid && existing().enabled == true) || isTeacherOrAdmin());
+      allow list: if isVerifiedUser() && ((resource.data.userId == request.auth.uid && resource.data.enabled == true) || isBootstrappedFacultyEmail());
+      allow create: if isTeacherOrAdmin() && isValidId(certId)
+        && isValidSchoolCertificate(incoming(), certId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isTeacherOrAdmin() && isValidId(certId)
+        && isValidSchoolCertificate(incoming(), certId)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['enabled', 'levelTitle', 'studentName', 'issuedBy', 'updatedAt'])
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(certId);
     }
   }
 }

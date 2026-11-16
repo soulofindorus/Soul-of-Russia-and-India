@@ -5,206 +5,312 @@
       "description": "Tracks deleted item IDs and ordering for a public portal content section.",
       "type": "object",
       "properties": {
-        "sectionKey": {
-          "type": "string",
-          "minLength": 3,
-          "maxLength": 100,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
-        },
-        "deletedIds": {
-          "type": "array",
-          "description": "Bounded list of removed item IDs"
-        },
-        "orderIds": {
-          "type": "array",
-          "description": "Bounded list of custom item IDs in display order"
-        },
-        "isPublic": {
-          "type": "boolean"
-        },
-        "createdBy": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "updatedBy": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
+        "sectionKey": { "type": "string", "minLength": 3, "maxLength": 100, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "deletedIds": { "type": "array", "description": "Bounded list of removed item IDs" },
+        "orderIds": { "type": "array", "description": "Bounded list of custom item IDs in display order" },
+        "isPublic": { "type": "boolean" },
+        "createdBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "updatedBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "sectionKey",
-        "deletedIds",
-        "orderIds",
-        "isPublic",
-        "createdBy",
-        "updatedBy",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["sectionKey", "deletedIds", "orderIds", "isPublic", "createdBy", "updatedBy", "createdAt", "updatedAt"]
     },
     "PortalEntry": {
       "title": "Portal Content Entry",
       "description": "Individual updated or added cultural region, story, article, video, site, or achievement published for all visitors.",
       "type": "object",
       "properties": {
-        "entryId": {
-          "type": "string",
-          "minLength": 3,
-          "maxLength": 160,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
-        },
-        "sectionKey": {
-          "type": "string",
-          "minLength": 3,
-          "maxLength": 100,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
-        },
-        "itemId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
-        },
-        "payload": {
-          "type": "object",
-          "description": "Structured item fields (title, name, image, galleryImages, etc.)"
-        },
-        "isPublic": {
-          "type": "boolean"
-        },
-        "createdBy": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "updatedBy": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
+        "entryId": { "type": "string", "minLength": 3, "maxLength": 160, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "sectionKey": { "type": "string", "minLength": 3, "maxLength": 100, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "itemId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "payload": { "type": "object", "description": "Structured item fields" },
+        "isPublic": { "type": "boolean" },
+        "createdBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "updatedBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "entryId",
-        "sectionKey",
-        "itemId",
-        "payload",
-        "isPublic",
-        "createdBy",
-        "updatedBy",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["entryId", "sectionKey", "itemId", "payload", "isPublic", "createdBy", "updatedBy", "createdAt", "updatedAt"]
     },
     "PortalMedia": {
       "title": "Portal Public Media Asset",
-      "description": "Web-optimized public image payload or Drive backup preview so every browser can render uploaded photos.",
+      "description": "Web-optimized public image payload or Drive backup preview.",
       "type": "object",
       "properties": {
-        "mediaId": {
-          "type": "string",
-          "minLength": 3,
-          "maxLength": 160,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
-        },
-        "dataUrl": {
-          "type": "string",
-          "minLength": 32,
-          "maxLength": 900000
-        },
-        "mimeType": {
-          "type": "string",
-          "minLength": 5,
-          "maxLength": 64
-        },
-        "driveFileId": {
-          "type": "string",
-          "maxLength": 160
-        },
-        "isPublic": {
-          "type": "boolean"
-        },
-        "createdBy": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "updatedBy": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
+        "mediaId": { "type": "string", "minLength": 3, "maxLength": 160, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "dataUrl": { "type": "string", "minLength": 32, "maxLength": 900000 },
+        "mimeType": { "type": "string", "minLength": 5, "maxLength": 64 },
+        "driveFileId": { "type": "string", "maxLength": 160 },
+        "isPublic": { "type": "boolean" },
+        "createdBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "updatedBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "mediaId",
-        "dataUrl",
-        "mimeType",
-        "isPublic",
-        "createdBy",
-        "updatedBy",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["mediaId", "dataUrl", "mimeType", "isPublic", "createdBy", "updatedBy", "createdAt", "updatedAt"]
     },
     "AdminUser": {
       "title": "Administrator Record",
       "description": "Authorized administrator accounts for RBAC verification.",
       "type": "object",
       "properties": {
-        "uid": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "role": {
-          "type": "string",
-          "enum": ["admin"]
-        }
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "role": { "type": "string", "enum": ["admin"] }
       },
       "required": ["uid", "role"]
+    },
+    "SchoolTeacher": {
+      "title": "School Teacher Record",
+      "description": "Authorized faculty lookup document for the Russian Language School.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "displayName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "email": { "type": "string", "minLength": 5, "maxLength": 180 },
+        "active": { "type": "boolean" },
+        "createdBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "email", "active", "createdBy", "createdAt", "updatedAt"]
+    },
+    "SchoolUser": {
+      "title": "School User Profile",
+      "description": "Private student or faculty profile with learning preferences and placement level.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "email": { "type": "string", "minLength": 3, "maxLength": 180 },
+        "role": { "type": "string", "enum": ["student", "teacher", "admin"] },
+        "currentLevel": { "type": "string", "enum": ["pre-a1", "a1", "a2", "b1", "b2", "c1", "c2"] },
+        "preferredUiLang": { "type": "string", "enum": ["en", "ru", "hi"] },
+        "country": { "type": "string", "maxLength": 80 },
+        "learningGoal": { "type": "string", "maxLength": 240 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "email", "role", "currentLevel", "preferredUiLang", "createdAt", "updatedAt"]
+    },
+    "SchoolContentDoc": {
+      "title": "School Curriculum or Resource Document",
+      "description": "Structured course, level, module, lesson, vocabulary, reading material, quiz, question, or announcement managed by teachers/admins.",
+      "type": "object",
+      "properties": {
+        "docId": { "type": "string", "minLength": 2, "maxLength": 160, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "contentType": { "type": "string", "enum": ["course", "level", "module", "lesson", "vocabulary", "reading", "quiz", "question", "announcement", "video"] },
+        "levelId": { "type": "string", "maxLength": 40 },
+        "isPublished": { "type": "boolean" },
+        "payload": { "type": "object" },
+        "createdBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "updatedBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["docId", "contentType", "isPublished", "payload", "createdBy", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "SchoolStudentProgress": {
+      "title": "Student Learning Progress",
+      "description": "Tracks completed lessons, modules, vocabulary SRS mastery, study streak, and resume point for an individual student.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 120 },
+        "currentLevel": { "type": "string", "enum": ["pre-a1", "a1", "a2", "b1", "b2", "c1", "c2"] },
+        "enrolledCourseIds": { "type": "array" },
+        "completedLessonIds": { "type": "array" },
+        "savedVocabIds": { "type": "array" },
+        "srsRecords": { "type": "object" },
+        "lastLessonId": { "type": "string", "maxLength": 160 },
+        "streakDays": { "type": "number" },
+        "lastStudyDate": { "type": "string", "maxLength": 32 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "currentLevel", "enrolledCourseIds", "completedLessonIds", "savedVocabIds", "streakDays", "updatedAt"]
+    },
+    "SchoolQuizAttempt": {
+      "title": "Quiz and Assessment Attempt",
+      "description": "Recorded score and answers summary for a student assessment or placement test.",
+      "type": "object",
+      "properties": {
+        "attemptId": { "type": "string", "minLength": 3, "maxLength": 160, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "quizId": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "quizTitle": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "levelId": { "type": "string", "maxLength": 40 },
+        "score": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "percentage": { "type": "number" },
+        "passed": { "type": "boolean" },
+        "recommendedLevel": { "type": "string", "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["attemptId", "userId", "quizId", "quizTitle", "score", "totalQuestions", "percentage", "passed", "createdAt"]
+    },
+    "SchoolBookmark": {
+      "title": "Student Bookmark",
+      "description": "Saved lesson or reading library item belonging to a student.",
+      "type": "object",
+      "properties": {
+        "bookmarkId": { "type": "string", "minLength": 3, "maxLength": 160, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "itemId": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "itemType": { "type": "string", "enum": ["lesson", "reading"] },
+        "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "levelId": { "type": "string", "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bookmarkId", "userId", "itemId", "itemType", "title", "createdAt"]
+    },
+    "SchoolWritingSubmission": {
+      "title": "Student Writing Assignment Submission",
+      "description": "Short writing exercise submitted by a student for teacher review and feedback.",
+      "type": "object",
+      "properties": {
+        "submissionId": { "type": "string", "minLength": 3, "maxLength": 160, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "studentName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "lessonId": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "lessonTitle": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "levelId": { "type": "string", "maxLength": 40 },
+        "prompt": { "type": "string", "minLength": 3, "maxLength": 500 },
+        "responseText": { "type": "string", "minLength": 5, "maxLength": 4000 },
+        "status": { "type": "string", "enum": ["submitted", "reviewed"] },
+        "teacherFeedback": { "type": "string", "maxLength": 2000 },
+        "reviewedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["submissionId", "userId", "studentName", "lessonId", "lessonTitle", "prompt", "responseText", "status", "createdAt", "updatedAt"]
+    },
+    "SchoolEnrolment": {
+      "title": "School Course Enrolment Record",
+      "description": "Course registration submission reviewed by administrators and teachers.",
+      "type": "object",
+      "properties": {
+        "enrolmentId": { "type": "string", "minLength": 3, "maxLength": 160, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "studentName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "email": { "type": "string", "minLength": 5, "maxLength": 180 },
+        "country": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "currentProficiency": { "type": "string", "maxLength": 60 },
+        "preferredCourse": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "learningGoals": { "type": "string", "minLength": 3, "maxLength": 600 },
+        "message": { "type": "string", "maxLength": 1500 },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "archived"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["enrolmentId", "userId", "studentName", "email", "country", "currentProficiency", "preferredCourse", "learningGoals", "status", "createdAt", "updatedAt"]
+    },
+    "SchoolCertificate": {
+      "title": "School Certificate of Completion",
+      "description": "Downloadable completion record authorized by school administrators/teachers.",
+      "type": "object",
+      "properties": {
+        "certId": { "type": "string", "minLength": 3, "maxLength": 160, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "studentName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "levelId": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "levelTitle": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "certificateCode": { "type": "string", "minLength": 4, "maxLength": 64 },
+        "issuedBy": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "enabled": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["certId", "userId", "studentName", "levelId", "levelTitle", "certificateCode", "issuedBy", "enabled", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
     "/portal_sections/{sectionKey}": {
       "schema": { "$ref": "#/entities/PortalSectionMeta" },
-      "description": "Public section metadata (deletions and ordering) readable by all visitors and writable only by verified admins."
+      "description": "Public portal section metadata."
     },
     "/portal_entries/{entryId}": {
       "schema": { "$ref": "#/entities/PortalEntry" },
-      "description": "Individual edited or added portal items (regions, photos, stories, articles) readable by all visitors and writable only by verified admins."
+      "description": "Public portal entries."
     },
     "/portal_media/{mediaId}": {
       "schema": { "$ref": "#/entities/PortalMedia" },
-      "description": "Public web-optimized image backups readable by all visitors and writable only by verified admins."
+      "description": "Public portal media backups."
     },
     "/admins/{userId}": {
       "schema": { "$ref": "#/entities/AdminUser" },
       "description": "Trusted administrator lookup documents."
+    },
+    "/school_teachers/{userId}": {
+      "schema": { "$ref": "#/entities/SchoolTeacher" },
+      "description": "Authorized teachers for the School of Foreign Languages (Russian)."
+    },
+    "/school_users/{userId}": {
+      "schema": { "$ref": "#/entities/SchoolUser" },
+      "description": "Private school user profiles isolated per user and admins."
+    },
+    "/school_courses/{docId}": {
+      "schema": { "$ref": "#/entities/SchoolContentDoc" },
+      "description": "Dynamic courses managed by teachers/admins."
+    },
+    "/school_levels/{docId}": {
+      "schema": { "$ref": "#/entities/SchoolContentDoc" },
+      "description": "Dynamic level overrides/descriptions."
+    },
+    "/school_modules/{docId}": {
+      "schema": { "$ref": "#/entities/SchoolContentDoc" },
+      "description": "Dynamic modules created by teachers/admins."
+    },
+    "/school_lessons/{docId}": {
+      "schema": { "$ref": "#/entities/SchoolContentDoc" },
+      "description": "Dynamic lessons created or updated via Teacher Panel."
+    },
+    "/school_vocabulary/{docId}": {
+      "schema": { "$ref": "#/entities/SchoolContentDoc" },
+      "description": "Dynamic vocabulary cards created via Teacher Panel."
+    },
+    "/school_reading_materials/{docId}": {
+      "schema": { "$ref": "#/entities/SchoolContentDoc" },
+      "description": "Dynamic reading library items and optional audio URLs."
+    },
+    "/school_quizzes/{docId}": {
+      "schema": { "$ref": "#/entities/SchoolContentDoc" },
+      "description": "Dynamic quizzes created via Teacher Panel."
+    },
+    "/school_questions/{docId}": {
+      "schema": { "$ref": "#/entities/SchoolContentDoc" },
+      "description": "Dynamic assessment questions created via Teacher Panel."
+    },
+    "/school_announcements/{docId}": {
+      "schema": { "$ref": "#/entities/SchoolContentDoc" },
+      "description": "School announcements published by teachers/admins."
+    },
+    "/school_video_references/{docId}": {
+      "schema": { "$ref": "#/entities/SchoolContentDoc" },
+      "description": "Curated and teacher-verified Russian video lesson references."
+    },
+    "/school_progress/{userId}": {
+      "schema": { "$ref": "#/entities/SchoolStudentProgress" },
+      "description": "Per-student progress document."
+    },
+    "/school_quiz_attempts/{attemptId}": {
+      "schema": { "$ref": "#/entities/SchoolQuizAttempt" },
+      "description": "Student assessment attempts and scores."
+    },
+    "/school_bookmarks/{bookmarkId}": {
+      "schema": { "$ref": "#/entities/SchoolBookmark" },
+      "description": "Student saved lesson and reading bookmarks."
+    },
+    "/school_writing_submissions/{submissionId}": {
+      "schema": { "$ref": "#/entities/SchoolWritingSubmission" },
+      "description": "Student short writing assignments and teacher feedback."
+    },
+    "/school_enrolments/{enrolmentId}": {
+      "schema": { "$ref": "#/entities/SchoolEnrolment" },
+      "description": "Course registrations and inquiries."
+    },
+    "/school_certificates/{certId}": {
+      "schema": { "$ref": "#/entities/SchoolCertificate" },
+      "description": "Authorized school completion certificates."
     }
   }
 }

@@ -53,6 +53,9 @@ function mergeRegionsWithDefaults(parsed: Region[], defaultRegions: Region[]): R
 function getInitialSection(): string {
   if (typeof window === 'undefined') return 'home';
   const hash = window.location.hash.replace('#', '').trim().toLowerCase();
+  if (hash === 'language' || hash.startsWith('language/')) {
+    return 'language';
+  }
   const validSections = [
     'home',
     'heritage',

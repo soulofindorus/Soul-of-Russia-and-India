@@ -263,4 +263,37 @@
   will-change: transform, opacity;
 }
 
+.font-cyrillic {
+  font-family: 'Noto Sans', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
 
+@media (prefers-reduced-motion: reduce) {
+  .animate-aurora-slow,
+  .animate-aurora-reverse,
+  .animate-spin-ultra-slow,
+  .animate-spin-reverse-ultra-slow,
+  .animate-float-slow,
+  .animate-pulse-gentle {
+    animation: none !important;
+  }
+}
+
+@media print {
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+  .print-lesson-sheet {
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+  }
+}
